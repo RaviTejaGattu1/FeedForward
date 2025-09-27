@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "bread",
+      "description": "A loaf of sourdough bread on a wooden board.",
+      "imageUrl": "https://images.unsplash.com/photo-1554933054-0b679a7982ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxicmVhZCUyMGxvYWZ8ZW58MHx8fHwxNzU4OTM0NjU0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "bread loaf"
+    },
+    {
+      "id": "apples",
+      "description": "A basket of fresh organic apples.",
+      "imageUrl": "https://images.unsplash.com/photo-1651774031696-1531123f9831?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhcHBsZXMlMjBiYXNrZXR8ZW58MHx8fHwxNzU4OTUwNzkxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "apples basket"
+    },
+    {
+      "id": "beans",
+      "description": "Several cans of beans stacked together.",
+      "imageUrl": "https://images.unsplash.com/photo-1626436273093-35351f1a7d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uZWQlMjBiZWFuc3xlbnwwfHx8fDE3NTkwMTc1NDd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "canned beans"
+    },
+    {
+      "id": "milk",
+      "description": "A glass bottle of fresh milk.",
+      "imageUrl": "https://images.unsplash.com/photo-1549127024-18ee7271c819?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWlsayUyMGJvdHRsZXxlbnwwfHx8fDE3NTg5NTA1MzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "milk bottle"
+    }
+  ]
 }
