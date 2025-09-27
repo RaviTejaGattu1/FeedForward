@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ export default function ProvidePage() {
   const [recipeSuggestion, setRecipeSuggestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   useEffect(() => {
     setIsFormFilled(
@@ -76,6 +78,7 @@ export default function ProvidePage() {
       title: 'Success!',
       description: 'Your food listing has been created.',
     });
+    router.push('/listings');
   };
 
   const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion);

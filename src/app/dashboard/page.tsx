@@ -96,7 +96,9 @@ export default function DashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex items-end">
-                  <Button className="w-full">My Listings</Button>
+                   <Button className="w-full" asChild>
+                    <Link href="/listings">My Listings</Link>
+                  </Button>
                 </CardContent>
               </Card>
             </div>
