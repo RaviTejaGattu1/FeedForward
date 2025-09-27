@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,6 +17,14 @@ import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const handleSignIn = () => {
+    // In a real app, you'd have authentication logic here.
+    // For now, we'll just redirect to the dashboard.
+    router.push('/dashboard');
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
@@ -41,7 +52,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full">Sign in</Button>
+            <Button className="w-full" onClick={handleSignIn}>Sign in</Button>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{' '}
               <Link href="/register" className="underline">
