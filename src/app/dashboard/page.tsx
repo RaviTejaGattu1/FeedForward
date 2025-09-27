@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -67,7 +68,9 @@ export default function DashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex items-end">
-                  <Button className="w-full">I want to provide</Button>
+                  <Button className="w-full" asChild>
+                    <Link href="/provide">I want to provide</Link>
+                  </Button>
                 </CardContent>
               </Card>
 
