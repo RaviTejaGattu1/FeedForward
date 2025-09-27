@@ -10,7 +10,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -19,6 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
+  DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import {
   Table,
@@ -29,12 +29,9 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
-  AlertTriangle,
   CheckCircle2,
   ChevronDown,
-  Circle,
   MoreHorizontal,
   PlusCircle,
   XCircle,
