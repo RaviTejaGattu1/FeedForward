@@ -53,11 +53,9 @@ export default function RegisterPage() {
       setIsSuccess(true);
       toast({
         title: 'Registration Successful!',
-        description: 'Your account has been created. Redirecting...',
+        description: 'Your account has been created.',
       });
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+      router.push('/dashboard');
     } catch (firebaseError: any) {
       let friendlyMessage = 'An unexpected error occurred. Please try again.';
       if (firebaseError.code === 'auth/email-already-in-use') {
