@@ -23,16 +23,16 @@ import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMounted } from '@/hooks/use-mounted';
+import { useLoadScript } from '@react-google-maps/api';
+import { LocationInput } from '@/components/location-input';
 
-const DynamicLocationInput = dynamic(
-  () => import('@/components/location-input').then(mod => mod.LocationInput),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-20 w-full" />,
-  }
-);
-
+const MAP_LIBRARIES = ['places'] as (
+  | 'places'
+  | 'drawing'
+  | 'geometry'
+  | 'localContext'
+  | 'visualization'
+)[];
 
 export default function ProvidePage() {
   const [foodName, setFoodName] = useState('');
@@ -48,7 +48,13 @@ export default function ProvidePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const isMounted = useMounted();
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey:
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
+      'dummy-key-for-local-dev',
+    libraries: MAP_LIBRARIES,
+  });
 
   useEffect(() => {
     setIsFormFilled(
@@ -195,8 +201,8 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-               {isMounted ? (
-                <DynamicLocationInput
+               {typeof window !== 'undefined' && isLoaded ? (
+                <LocationInput
                   value={address}
                   onValueChange={setAddress}
                   onLocationSelect={(lat, lng, formattedAddress) => {

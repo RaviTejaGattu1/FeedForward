@@ -6,7 +6,6 @@ import {
   Autocomplete,
   GoogleMap,
   Marker,
-  useLoadScript,
 } from '@react-google-maps/api';
 import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,16 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useLocation } from '@/hooks/use-location';
-
-const MAP_LIBRARIES = ['places'] as (
-  | 'places'
-  | 'drawing'
-  | 'geometry'
-  | 'localContext'
-  | 'visualization'
-)[];
 
 type LocationInputProps = {
   value?: string;
@@ -52,20 +42,12 @@ export function LocationInput({
   variant = 'textarea',
   ...props
 }: LocationInputProps) {
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey:
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
-      'dummy-key-for-local-dev',
-    libraries: MAP_LIBRARIES,
-  });
-
   const {
     mapCenter,
     setMapCenter,
     markerPosition,
     setMarkerPosition,
-    handleGeolocate,
-  } = useLocation(isLoaded, onValueChange, onLocationSelect, isGeolocateDefault);
+  } = useLocation(true, onValueChange, onLocationSelect, isGeolocateDefault);
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -87,20 +69,6 @@ export function LocationInput({
       }
     }
   };
-
-  if (loadError) {
-    return (
-      <Input
-        value="Could not load Google Maps"
-        disabled
-        className="text-destructive"
-      />
-    );
-  }
-
-  if (!isLoaded) {
-    return <Skeleton className="h-20 w-full" />;
-  }
 
   const InputComponent = variant === 'textarea' ? Textarea : Input;
 

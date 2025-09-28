@@ -3,12 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-type LocationData = {
-  lat: number;
-  lng: number;
-  formattedAddress: string;
-};
-
 export function useLocation(
   isMapsLoaded: boolean,
   onValueChange?: (value: string) => void,
@@ -67,8 +61,7 @@ export function useLocation(
     if (isGeolocateDefault && isMapsLoaded) {
       handleGeolocate();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isGeolocateDefault, isMapsLoaded]);
+  }, [isGeolocateDefault, isMapsLoaded, handleGeolocate]);
 
   return {
     mapCenter,

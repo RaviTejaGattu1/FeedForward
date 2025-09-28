@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AppHeader } from '@/components/layout/app-header';
@@ -31,16 +30,16 @@ import {
 } from '@/components/ui/select';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMounted } from '@/hooks/use-mounted';
+import { useLoadScript } from '@react-google-maps/api';
+import { LocationInput } from '@/components/location-input';
 
-const DynamicLocationInput = dynamic(
-  () => import('@/components/location-input').then(mod => mod.LocationInput),
-  {
-    ssr: false,
-    loading: () => <Skeleton className="h-10 w-full" />,
-  }
-);
-
+const MAP_LIBRARIES = ['places'] as (
+  | 'places'
+  | 'drawing'
+  | 'geometry'
+  | 'localContext'
+  | 'visualization'
+)[];
 
 const mockListings = [
   {
@@ -92,7 +91,13 @@ const mockListings = [
 export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [location, setLocation] = useState('');
-  const isMounted = useMounted();
+
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey:
+      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
+      'dummy-key-for-local-dev',
+    libraries: MAP_LIBRARIES,
+  });
 
   const handleSearch = () => {
     // In a real app, you'd fetch listings based on the search criteria.
@@ -121,8 +126,8 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      {isMounted ? (
-                        <DynamicLocationInput
+                      {typeof window !== 'undefined' && isLoaded ? (
+                        <LocationInput
                           isGeolocateDefault={true}
                           value={location}
                           onValueChange={setLocation}
