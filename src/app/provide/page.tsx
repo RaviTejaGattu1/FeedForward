@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,13 +15,13 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Lightbulb, MapPin, Upload } from 'lucide-react';
+import { Lightbulb, Upload } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
+import { LocationInput } from '@/components/location-input';
 
 export default function ProvidePage() {
   const [foodName, setFoodName] = useState('');
@@ -182,25 +183,13 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-              <div className="relative">
-                <Textarea
-                  id="address"
-                  placeholder="123 Main Street, Anytown, USA"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                >
-                  <MapPin className="h-5 w-5" />
-                  <span className="sr-only">Pinpoint Location</span>
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                You can also use the map pin to select your precise location.
-              </p>
+              <LocationInput
+                value={address}
+                onValueChange={setAddress}
+                onLocationSelect={(lat, lng, formattedAddress) => {
+                  setAddress(formattedAddress);
+                }}
+              />
             </div>
 
             {recipeSuggestion && (

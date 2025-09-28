@@ -20,7 +20,6 @@ import {
   CookingPot,
   MapPin,
   Search,
-  Users,
 } from 'lucide-react';
 import {
   Select,
@@ -30,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { LocationInput } from '@/components/location-input';
 
 const mockListings = [
   {
@@ -80,6 +80,7 @@ const mockListings = [
 
 export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
+  const [location, setLocation] = useState('');
 
   const handleSearch = () => {
     // In a real app, you'd fetch listings based on the search criteria.
@@ -108,21 +109,14 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      <div className="relative">
-                        <Input
-                          id="location"
-                          placeholder="123 Main Street, Anytown, USA"
-                          required
-                        />
-                         <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-1/2 right-2 -translate-y-1/2"
-                        >
-                          <MapPin className="h-5 w-5" />
-                          <span className="sr-only">Pinpoint Location</span>
-                        </Button>
-                      </div>
+                      <LocationInput
+                        isGeolocateDefault={true}
+                        value={location}
+                        onValueChange={setLocation}
+                        onLocationSelect={(lat, lng, formattedAddress) => {
+                          setLocation(formattedAddress);
+                        }}
+                      />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="range">Find within range</Label>
