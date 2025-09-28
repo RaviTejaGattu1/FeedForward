@@ -3,7 +3,6 @@
 
 import { useState, useRef, useEffect, type ComponentProps } from 'react';
 import {
-  Autocomplete,
   GoogleMap,
   Marker,
 } from '@react-google-maps/api';
@@ -49,43 +48,67 @@ export function LocationInput({
     setMarkerPosition,
   } = useLocation(true, onValueChange, onLocationSelect, isGeolocateDefault);
 
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const [autocomplete, setAutocomplete] =
+    useState<google.maps.places.Autocomplete | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
-  const handlePlaceChanged = () => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      if (place.geometry && place.geometry.location) {
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        const formattedAddress = place.formatted_address ?? '';
-
-        setMapCenter({ lat, lng });
-        setMarkerPosition({ lat, lng });
-        onValueChange?.(formattedAddress);
-        if (onLocationSelect) {
-          onLocationSelect(lat, lng, formattedAddress);
+  useEffect(() => {
+    if (inputRef.current && !autocomplete) {
+      const newAutocomplete = new window.google.maps.places.Autocomplete(
+        inputRef.current,
+        {
+          fields: ['geometry', 'formatted_address'],
         }
-      }
+      );
+      setAutocomplete(newAutocomplete);
     }
-  };
+
+    return () => {
+      if (autocomplete) {
+        // Clean up the autocomplete instance
+        window.google.maps.event.clearInstanceListeners(autocomplete);
+      }
+    };
+  }, [autocomplete]);
+
+  useEffect(() => {
+    if (autocomplete) {
+      const listener = autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          const formattedAddress = place.formatted_address ?? '';
+
+          setMapCenter({ lat, lng });
+          setMarkerPosition({ lat, lng });
+          onValueChange?.(formattedAddress);
+          if (onLocationSelect) {
+            onLocationSelect(lat, lng, formattedAddress);
+          }
+        }
+      });
+
+      return () => {
+        // Clean up the listener
+        window.google.maps.event.removeListener(listener);
+      };
+    }
+  }, [autocomplete, onValueChange, onLocationSelect, setMapCenter, setMarkerPosition]);
 
   const InputComponent = variant === 'textarea' ? Textarea : Input;
 
   return (
     <div className="relative">
-      <Autocomplete
-        onLoad={(ref) => (autocompleteRef.current = ref)}
-        onPlaceChanged={handlePlaceChanged}
-        className="w-full"
-      >
-        <InputComponent
-          value={value}
-          onChange={(e) => onValueChange?.(e.target.value)}
-          placeholder="Enter an address"
-          {...(props as any)}
-        />
-      </Autocomplete>
+      <InputComponent
+        // @ts-ignore
+        ref={inputRef}
+        value={value}
+        onChange={(e) => onValueChange?.(e.target.value)}
+        placeholder="Enter an address"
+        {...(props as any)}
+      />
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogTrigger asChild>
           <Button
