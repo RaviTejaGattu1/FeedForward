@@ -23,6 +23,7 @@ import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMounted } from '@/hooks/use-mounted';
 
 const DynamicLocationInput = dynamic(
   () => import('@/components/location-input').then(mod => mod.LocationInput),
@@ -47,6 +48,7 @@ export default function ProvidePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const isMounted = useMounted();
 
   useEffect(() => {
     setIsFormFilled(
@@ -193,13 +195,17 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-              <DynamicLocationInput
-                value={address}
-                onValueChange={setAddress}
-                onLocationSelect={(lat, lng, formattedAddress) => {
-                  setAddress(formattedAddress);
-                }}
-              />
+               {isMounted ? (
+                <DynamicLocationInput
+                  value={address}
+                  onValueChange={setAddress}
+                  onLocationSelect={(lat, lng, formattedAddress) => {
+                    setAddress(formattedAddress);
+                  }}
+                />
+              ) : (
+                <Skeleton className="h-20 w-full" />
+              )}
             </div>
 
             {recipeSuggestion && (

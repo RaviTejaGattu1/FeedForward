@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/select';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMounted } from '@/hooks/use-mounted';
 
 const DynamicLocationInput = dynamic(
   () => import('@/components/location-input').then(mod => mod.LocationInput),
@@ -91,6 +92,7 @@ const mockListings = [
 export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [location, setLocation] = useState('');
+  const isMounted = useMounted();
 
   const handleSearch = () => {
     // In a real app, you'd fetch listings based on the search criteria.
@@ -119,15 +121,19 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      <DynamicLocationInput
-                        isGeolocateDefault={true}
-                        value={location}
-                        onValueChange={setLocation}
-                        onLocationSelect={(lat, lng, formattedAddress) => {
-                          setLocation(formattedAddress);
-                        }}
-                        variant="input"
-                      />
+                      {isMounted ? (
+                        <DynamicLocationInput
+                          isGeolocateDefault={true}
+                          value={location}
+                          onValueChange={setLocation}
+                          onLocationSelect={(lat, lng, formattedAddress) => {
+                            setLocation(formattedAddress);
+                          }}
+                          variant="input"
+                        />
+                      ) : (
+                        <Skeleton className="h-10 w-full" />
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="range">Find within range</Label>
