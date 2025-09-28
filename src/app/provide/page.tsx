@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
@@ -21,7 +22,16 @@ import { Lightbulb, Upload } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
-import { DynamicLocationInput } from '@/components/dynamic-location-input';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const DynamicLocationInput = dynamic(
+  () => import('@/components/location-input').then(mod => mod.LocationInput),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-20 w-full" />,
+  }
+);
+
 
 export default function ProvidePage() {
   const [foodName, setFoodName] = useState('');

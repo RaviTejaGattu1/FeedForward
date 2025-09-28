@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AppHeader } from '@/components/layout/app-header';
@@ -29,7 +30,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { DynamicLocationInput } from '@/components/dynamic-location-input';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const DynamicLocationInput = dynamic(
+  () => import('@/components/location-input').then(mod => mod.LocationInput),
+  {
+    ssr: false,
+    loading: () => <Skeleton className="h-10 w-full" />,
+  }
+);
+
 
 const mockListings = [
   {
@@ -116,6 +126,7 @@ export default function SearchPage() {
                         onLocationSelect={(lat, lng, formattedAddress) => {
                           setLocation(formattedAddress);
                         }}
+                        variant="input"
                       />
                     </div>
                     <div className="grid gap-2">
