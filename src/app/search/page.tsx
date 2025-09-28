@@ -134,10 +134,9 @@ export default function SearchPage() {
                           onLocationSelect={(lat, lng, formattedAddress) => {
                             setLocation(formattedAddress);
                           }}
-                          variant="input"
                         />
                       ) : (
-                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-20 w-full" />
                       )}
                     </div>
                     <div className="grid gap-2">

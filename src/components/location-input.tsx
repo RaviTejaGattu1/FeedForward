@@ -1,12 +1,18 @@
 
 'use client';
 
-import { useState, useRef, useEffect, type ComponentProps } from 'react';
 import {
   GoogleMap,
   Marker,
 } from '@react-google-maps/api';
 import { MapPin } from 'lucide-react';
+import {
+  type ComponentProps,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +23,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useLocation } from '@/hooks/use-location';
 
 type LocationInputProps = {
@@ -29,26 +34,19 @@ type LocationInputProps = {
     formattedAddress: string
   ) => void;
   isGeolocateDefault?: boolean;
-  variant?: 'input' | 'textarea';
-} & Omit<ComponentProps<'input'>, 'value' | 'onChange'> &
-  Omit<ComponentProps<'textarea'>, 'value' | 'onChange'>;
+} & Omit<ComponentProps<'input'>, 'value' | 'onChange'>;
 
 export function LocationInput({
   value,
   onValueChange,
   onLocationSelect,
   isGeolocateDefault = false,
-  variant = 'textarea',
   ...props
 }: LocationInputProps) {
-  const {
-    mapCenter,
-    setMapCenter,
-    markerPosition,
-    setMarkerPosition,
-  } = useLocation(true, onValueChange, onLocationSelect, isGeolocateDefault);
+  const { mapCenter, setMapCenter, markerPosition, setMarkerPosition } =
+    useLocation(true, onValueChange, onLocationSelect, isGeolocateDefault);
 
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [autocomplete, setAutocomplete] =
     useState<google.maps.places.Autocomplete | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -62,14 +60,13 @@ export function LocationInput({
         }
       );
       setAutocomplete(newAutocomplete);
-    }
 
-    return () => {
-      if (autocomplete) {
-        // Clean up the autocomplete instance
-        window.google.maps.event.clearInstanceListeners(autocomplete);
-      }
-    };
+      return () => {
+        if (newAutocomplete) {
+          window.google.maps.event.clearInstanceListeners(newAutocomplete);
+        }
+      };
+    }
   }, [autocomplete]);
 
   useEffect(() => {
@@ -92,29 +89,28 @@ export function LocationInput({
 
       return () => {
         // Clean up the listener
-        window.google.maps.event.removeListener(listener);
+        if (listener) {
+          window.google.maps.event.removeListener(listener);
+        }
       };
     }
   }, [autocomplete, onValueChange, onLocationSelect, setMapCenter, setMarkerPosition]);
 
-  const InputComponent = variant === 'textarea' ? Textarea : Input;
-
   return (
     <div className="relative">
-      <InputComponent
-        // @ts-ignore
+      <Input
         ref={inputRef}
         value={value}
         onChange={(e) => onValueChange?.(e.target.value)}
         placeholder="Enter an address"
-        {...(props as any)}
+        {...props}
       />
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-1 right-1"
+            className="absolute top-1 right-1 h-8 w-8"
           >
             <MapPin className="h-5 w-5" />
           </Button>
