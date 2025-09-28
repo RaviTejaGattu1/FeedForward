@@ -36,6 +36,7 @@ import {
   XCircle,
   Check,
   MessageSquare,
+  LogIn,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -53,6 +54,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useListings, type ListingStatus } from '@/hooks/use-listings';
+import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const statusStyles: { [key in ListingStatus]: string } = {
@@ -65,15 +67,12 @@ const statusStyles: { [key in ListingStatus]: string } = {
 
 
 export default function MyListingsPage() {
-  const { listings, setListings, isInitialized } = useListings();
+  const { user } = useAuth();
+  const { listings, updateListing, removeListing, isInitialized } = useListings();
   const { toast } = useToast();
 
   const handleApprove = (listingId: string, pickupOption: 'otp' | 'leave') => {
-    setListings(
-      listings.map((l) =>
-        l.id === listingId ? { ...l, status: 'approved' } : l
-      )
-    );
+    updateListing(listingId, { status: 'approved' });
     toast({
       title: 'Request Approved!',
       description: `The requester has been notified with the ${
@@ -83,11 +82,7 @@ export default function MyListingsPage() {
   };
 
   const handleDeny = (listingId: string) => {
-    setListings(
-      listings.map((l) =>
-        l.id === listingId ? { ...l, status: 'active', claimedBy: null } : l
-      )
-    );
+    updateListing(listingId, { status: 'active', claimedBy: null });
      toast({
       title: 'Request Denied',
       description: 'The listing is now active again.',
@@ -96,12 +91,34 @@ export default function MyListingsPage() {
   };
 
   const handleDelivered = (listingId: string) => {
-    const updatedListings = listings.filter((l) => l.id !== listingId);
-    setListings(updatedListings);
-    toast({
-        title: 'Transaction Complete!',
-        description: 'The listing has been removed from the system.',
-    });
+    removeListing(listingId);
+  }
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+         <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <CardTitle className="text-2xl">Please Log In</CardTitle>
+                <CardDescription>
+                    You need to be logged in to view your listings.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild size="lg">
+                    <Link href="/login">
+                        <LogIn className="mr-2" />
+                        Go to Login
+                    </Link>
+                </Button>
+            </CardContent>
+         </Card>
+      </main>
+      <AppFooter />
+    </div>
+    )
   }
 
   return (
@@ -246,7 +263,7 @@ export default function MyListingsPage() {
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-500">Delete</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-500" onClick={() => removeListing(listing.id)}>Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                         )}
@@ -256,7 +273,7 @@ export default function MyListingsPage() {
                    {isInitialized && listings.length === 0 && (
                      <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                            You have no active listings.
+                            You have no active listings. Create one to get started!
                         </TableCell>
                     </TableRow>
                   )}

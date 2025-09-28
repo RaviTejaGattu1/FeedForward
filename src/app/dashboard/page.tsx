@@ -1,10 +1,11 @@
+
 'use client';
 
 import Link from 'next/link';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, HandHeart, Search, List } from 'lucide-react';
+import { AlertCircle, HandHeart, Search, List, LogIn } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Card,
@@ -13,9 +14,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function DashboardPage() {
-  const userName = 'Alex'; // In a real app, this would come from user session
+  const { user } = useAuth();
+
   const notifications = [
     {
       id: 1,
@@ -23,13 +26,40 @@ export default function DashboardPage() {
     },
   ];
 
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+         <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <CardTitle className="text-2xl">Please Log In</CardTitle>
+                <CardDescription>
+                    You need to be logged in to view your dashboard.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild size="lg">
+                    <Link href="/login">
+                        <LogIn className="mr-2" />
+                        Go to Login
+                    </Link>
+                </Button>
+            </CardContent>
+         </Card>
+      </main>
+      <AppFooter />
+    </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <AppHeader />
       <main className="flex-1">
         <div className="container py-8 md:py-12">
           <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
-            Welcome back, {userName}!
+            Welcome back, {user.displayName || user.email}!
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
             Here&apos;s what you can do today.

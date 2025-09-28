@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -14,54 +15,57 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
-
-// In a real app, this would be your database.
-const existingUsers = [{ id: 'admin' }];
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
-  const [id, setId] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('');
   const [isFormValid, setIsFormValid] = useState(false);
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
-    setIsFormValid(!!(name && id && password && role));
-  }, [name, id, password, role]);
+    setIsFormValid(!!(name && email && password));
+  }, [name, email, password]);
 
-  const handleCreateAccount = () => {
+  const handleCreateAccount = async () => {
     setError('');
-    
-    // Check if user ID already exists
-    if (existingUsers.some(user => user.id === id)) {
-      setError('User with this ID already exists. Please choose another ID.');
-      return;
+    setIsLoading(true);
+
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setIsSuccess(true);
+      toast({
+        title: 'Registration Successful!',
+        description: 'Your account has been created. Redirecting...',
+      });
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
+    } catch (firebaseError: any) {
+      let friendlyMessage = 'An unexpected error occurred. Please try again.';
+      if (firebaseError.code === 'auth/email-already-in-use') {
+        friendlyMessage = 'This email address is already in use. Please use a different email.';
+      } else if (firebaseError.code === 'auth/weak-password') {
+        friendlyMessage = 'The password is too weak. Please choose a stronger password (at least 6 characters).';
+      } else if (firebaseError.code === 'auth/invalid-email') {
+        friendlyMessage = 'The email address is not valid. Please enter a valid email.';
+      }
+      setError(friendlyMessage);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Simulate creating a new user
-    const newUser = { name, id, password, role };
-    existingUsers.push(newUser);
-
-    setIsSuccess(true);
-    toast({
-      title: 'Registration Successful!',
-      description: 'Your account has been created.',
-    });
-
-    setTimeout(() => {
-      router.push('/');
-    }, 2000);
   };
 
 
@@ -88,13 +92,14 @@ export default function RegisterPage() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="id">ID</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="id"
-                placeholder="maxr"
+                id="email"
+                type="email"
+                placeholder="m@example.com"
                 required
-                value={id}
-                onChange={(e) => setId(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
@@ -107,32 +112,11 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            <div className="grid gap-2">
-              <Label>Role</Label>
-              <RadioGroup
-                value={role}
-                onValueChange={setRole}
-                className="flex gap-4 pt-1"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="user" id="r-user" />
-                  <Label htmlFor="r-user" className="font-normal">
-                    User
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="admin" id="r-admin" />
-                  <Label htmlFor="r-admin" className="font-normal">
-                    Admin
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
 
             {error && (
               <Alert variant="destructive">
                 <Terminal className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
+                <AlertTitle>Registration Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -142,7 +126,7 @@ export default function RegisterPage() {
                  <Terminal className="h-4 w-4" />
                  <AlertTitle>Success!</AlertTitle>
                  <AlertDescription>
-                   Registration successful! Redirecting to homepage...
+                   Registration successful! Redirecting to dashboard...
                  </AlertDescription>
                </Alert>
             )}
@@ -153,10 +137,10 @@ export default function RegisterPage() {
               className={cn('w-full', {
                 'bg-success text-success-foreground hover:bg-success/90': isFormValid,
               })}
-              disabled={!isFormValid || isSuccess}
+              disabled={!isFormValid || isLoading || isSuccess}
               onClick={handleCreateAccount}
             >
-              Create
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
             <div className="mt-4 text-center text-sm">
               Already have an account?{' '}

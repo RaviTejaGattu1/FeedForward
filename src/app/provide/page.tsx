@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Lightbulb, Upload } from 'lucide-react';
+import { Lightbulb, Upload, LogIn } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
@@ -25,6 +25,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
 import { useListings } from '@/hooks/use-listings';
+import { useAuth } from '@/hooks/use-auth';
+import Link from 'next/link';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -35,6 +37,7 @@ const MAP_LIBRARIES = ['places'] as (
 )[];
 
 export default function ProvidePage() {
+  const { user } = useAuth();
   const [foodName, setFoodName] = useState('');
   const [foodType, setFoodType] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -49,6 +52,12 @@ export default function ProvidePage() {
   const router = useRouter();
   const { addListing } = useListings();
 
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const { isLoaded } = useLoadScript({
     googleMapsApiKey:
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
@@ -62,7 +71,6 @@ export default function ProvidePage() {
     const handler = setTimeout(() => {
       if (foodName) {
         setIsGenerating(true);
-        setIsSuggestionAcknowledged(false);
         setRecipeSuggestion('');
         generateRecipeSuggestion({ foodItem: foodName })
           .then((result) => {
@@ -70,7 +78,6 @@ export default function ProvidePage() {
           })
           .catch((error) => {
             console.error('Error generating recipe suggestion:', error);
-            // Don't show toast for API key errors, as the main page already has a warning
             if (!error.message.includes('GEMINI_API_KEY')) {
               toast({
                 variant: 'destructive',
@@ -84,17 +91,17 @@ export default function ProvidePage() {
             setIsGenerating(false);
           });
       }
-    }, 1000); // Debounce for 1 second
+    }, 1000);
 
     return () => {
       clearTimeout(handler);
     };
   }, [foodName, toast]);
 
-  const handleCreateListing = () => {
+  const handleCreateListing = async () => {
     if (!isFormFilled) return;
 
-    addListing({
+    await addListing({
         foodName,
         foodType,
         quantity: parseInt(quantity, 10),
@@ -106,6 +113,33 @@ export default function ProvidePage() {
   };
 
   const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion || isGenerating);
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+         <Card className="w-full max-w-md text-center">
+            <CardHeader>
+                <CardTitle className="text-2xl">Please Log In</CardTitle>
+                <CardDescription>
+                    You need to be logged in to create a food listing.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild size="lg">
+                    <Link href="/login">
+                        <LogIn className="mr-2" />
+                        Go to Login
+                    </Link>
+                </Button>
+            </CardContent>
+         </Card>
+      </main>
+      <AppFooter />
+    </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -206,7 +240,7 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-              {typeof window !== 'undefined' && isLoaded ? (
+               {isClient && isLoaded ? (
                 <LocationInput
                   value={address}
                   onValueChange={setAddress}
@@ -219,7 +253,7 @@ export default function ProvidePage() {
               )}
             </div>
 
-            {recipeSuggestion && (
+            {recipeSuggestion && !isSuggestionAcknowledged && (
               <Alert className="bg-accent/20 border-accent/50">
                 <Lightbulb className="h-4 w-4 text-accent" />
                 <AlertTitle className="font-semibold text-accent">
@@ -227,15 +261,13 @@ export default function ProvidePage() {
                 </AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
                   <Balancer>{recipeSuggestion}</Balancer>
-                  {!isSuggestionAcknowledged && (
-                    <Button
-                      size="sm"
-                      onClick={() => setIsSuggestionAcknowledged(true)}
-                      className="bg-accent text-accent-foreground hover:bg-accent/90"
-                    >
-                      Ok, Got it
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => setIsSuggestionAcknowledged(true)}
+                    className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    Ok, Got it
+                  </Button>
                 </AlertDescription>
               </Alert>
             )}
