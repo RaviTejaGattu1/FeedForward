@@ -93,13 +93,13 @@ export default async function Home() {
               recipient, or help us manage the network.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button size="lg" asChild>
+              <Button size="lg" variant="secondary" asChild>
                 <Link href="/register">Register Now</Link>
               </Button>
               <Button size="lg" variant="secondary" asChild>
                 <Link href="/login">User Login</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="secondary" asChild>
                 <Link href="/admin/login">Admin Login</Link>
               </Button>
             </div>
