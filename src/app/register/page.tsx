@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export default function RegisterPage() {
@@ -44,7 +44,12 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // After creating the user, update their profile with the name
+      await updateProfile(userCredential.user, {
+        displayName: name,
+      });
+
       setIsSuccess(true);
       toast({
         title: 'Registration Successful!',
