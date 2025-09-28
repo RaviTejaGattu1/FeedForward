@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -33,16 +34,16 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle className="text-2xl">User Login</CardTitle>
             <CardDescription>
-              Enter your email below to login to your account.
+              Enter your ID below to login to your account.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="id">ID</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
+                id="id"
+                type="text"
+                placeholder="maxr"
                 required
               />
             </div>
