@@ -15,9 +15,33 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <AppHeader />
+      <main className="flex-1">
+        <div className="container py-8 md:py-12">
+          <Skeleton className="h-12 w-1/2" />
+          <Skeleton className="mt-4 h-6 w-1/3" />
+          <section className="mt-12">
+            <div className="grid gap-6 md:grid-cols-3">
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          </section>
+        </div>
+      </main>
+      <AppFooter />
+    </div>
+  );
+}
+
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const notifications = [
     {
@@ -25,6 +49,10 @@ export default function DashboardPage() {
       text: 'The Community Shelter has claimed your listing for "Fresh Bread". Please approve the pickup.',
     },
   ];
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
 
   if (!user) {
     return (

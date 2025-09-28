@@ -37,7 +37,7 @@ const MAP_LIBRARIES = ['places'] as (
 )[];
 
 export default function ProvidePage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [foodName, setFoodName] = useState('');
   const [foodType, setFoodType] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -68,29 +68,28 @@ export default function ProvidePage() {
   const isFormFilled = foodName && foodType && quantity && address;
 
   useEffect(() => {
+    if (!foodName) return;
     const handler = setTimeout(() => {
-      if (foodName) {
-        setIsGenerating(true);
-        setRecipeSuggestion('');
-        generateRecipeSuggestion({ foodItem: foodName })
-          .then((result) => {
-            setRecipeSuggestion(result.suggestion);
-          })
-          .catch((error) => {
-            console.error('Error generating recipe suggestion:', error);
-            if (!error.message.includes('GEMINI_API_KEY')) {
-              toast({
-                variant: 'destructive',
-                title: 'Error',
-                description:
-                  'Could not generate a recipe suggestion at this time.',
-              });
-            }
-          })
-          .finally(() => {
-            setIsGenerating(false);
-          });
-      }
+      setIsGenerating(true);
+      setRecipeSuggestion('');
+      generateRecipeSuggestion({ foodItem: foodName })
+        .then((result) => {
+          setRecipeSuggestion(result.suggestion);
+        })
+        .catch((error) => {
+          console.error('Error generating recipe suggestion:', error);
+          if (!error.message.includes('GEMINI_API_KEY')) {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description:
+                'Could not generate a recipe suggestion at this time.',
+            });
+          }
+        })
+        .finally(() => {
+          setIsGenerating(false);
+        });
     }, 1000);
 
     return () => {
@@ -114,31 +113,32 @@ export default function ProvidePage() {
 
   const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion || isGenerating);
 
-  if (!user) {
-    return (
+  if (loading) {
+     return (
       <div className="flex min-h-screen flex-col">
-      <AppHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-         <Card className="w-full max-w-md text-center">
+        <AppHeader />
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+          <Card className="w-full max-w-2xl">
             <CardHeader>
-                <CardTitle className="text-2xl">Please Log In</CardTitle>
-                <CardDescription>
-                    You need to be logged in to create a food listing.
-                </CardDescription>
+              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-5 w-1/2" />
             </CardHeader>
-            <CardContent>
-                <Button asChild size="lg">
-                    <Link href="/login">
-                        <LogIn className="mr-2" />
-                        Go to Login
-                    </Link>
-                </Button>
+            <CardContent className="grid gap-6">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-12 w-full" />
             </CardContent>
-         </Card>
-      </main>
-      <AppFooter />
-    </div>
-    )
+          </Card>
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
+  if (!user && !loading) {
+    router.push('/login');
+    return null;
   }
 
   return (
@@ -261,13 +261,15 @@ export default function ProvidePage() {
                 </AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
                   <Balancer>{recipeSuggestion}</Balancer>
-                  <Button
-                    size="sm"
-                    onClick={() => setIsSuggestionAcknowledged(true)}
-                    className="bg-accent text-accent-foreground hover:bg-accent/90"
-                  >
-                    Ok, Got it
-                  </Button>
+                   {!isSuggestionAcknowledged && (
+                    <Button
+                      size="sm"
+                      onClick={() => setIsSuggestionAcknowledged(true)}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      Ok, Got it
+                    </Button>
+                  )}
                 </AlertDescription>
               </Alert>
             )}

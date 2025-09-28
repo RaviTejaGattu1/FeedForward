@@ -56,6 +56,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useListings, type ListingStatus } from '@/hooks/use-listings';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
 
 const statusStyles: { [key in ListingStatus]: string } = {
   active: 'bg-green-500/20 text-green-700 border-green-500/40',
@@ -67,9 +68,10 @@ const statusStyles: { [key in ListingStatus]: string } = {
 
 
 export default function MyListingsPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { listings, updateListing, removeListing, isInitialized } = useListings();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleApprove = (listingId: string, pickupOption: 'otp' | 'leave') => {
     updateListing(listingId, { status: 'approved' });
@@ -94,31 +96,34 @@ export default function MyListingsPage() {
     removeListing(listingId);
   }
 
-  if (!user) {
+  if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
-      <AppHeader />
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
-         <Card className="w-full max-w-md text-center">
-            <CardHeader>
-                <CardTitle className="text-2xl">Please Log In</CardTitle>
-                <CardDescription>
-                    You need to be logged in to view your listings.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild size="lg">
-                    <Link href="/login">
-                        <LogIn className="mr-2" />
-                        Go to Login
-                    </Link>
-                </Button>
-            </CardContent>
-         </Card>
-      </main>
-      <AppFooter />
-    </div>
-    )
+       <div className="flex min-h-screen w-full flex-col">
+        <AppHeader />
+        <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
+          <div className="mx-auto grid w-full max-w-6xl gap-2">
+            <Skeleton className="h-10 w-48" />
+          </div>
+          <div className="mx-auto grid w-full max-w-6xl items-start gap-6">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-5 w-80" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+  
+  if (!user && !loading) {
+    router.push('/login');
+    return null;
   }
 
   return (
