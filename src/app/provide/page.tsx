@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
@@ -24,6 +24,7 @@ import { Balancer } from 'react-wrap-balancer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
+import { useListings } from '@/hooks/use-listings';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -42,11 +43,11 @@ export default function ProvidePage() {
   const [address, setAddress] = useState('');
   const [isSuggestionAcknowledged, setIsSuggestionAcknowledged] =
     useState(false);
-  const [isFormFilled, setIsFormFilled] = useState(false);
   const [recipeSuggestion, setRecipeSuggestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { addListing } = useListings();
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey:
@@ -55,11 +56,7 @@ export default function ProvidePage() {
     libraries: MAP_LIBRARIES,
   });
 
-  useEffect(() => {
-    setIsFormFilled(
-      !!(foodName && foodType && quantity && address)
-    );
-  }, [foodName, foodType, quantity, address]);
+  const isFormFilled = foodName && foodType && quantity && address;
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -95,9 +92,15 @@ export default function ProvidePage() {
   }, [foodName, toast]);
 
   const handleCreateListing = () => {
-    toast({
-      title: 'Success!',
-      description: 'Your food listing has been created.',
+    if (!isFormFilled) return;
+
+    addListing({
+        foodName,
+        foodType,
+        quantity: parseInt(quantity, 10),
+        address,
+        weight,
+        volume,
     });
     router.push('/listings');
   };

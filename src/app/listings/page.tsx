@@ -18,7 +18,6 @@ import {
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -32,7 +31,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle2,
-  ChevronDown,
   MoreHorizontal,
   PlusCircle,
   XCircle,
@@ -54,48 +52,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-
-type ListingStatus =
-  | 'active'
-  | 'receiver incoming'
-  | 'approved'
-  | 'awaiting approval'
-  | 'delivered';
-
-const initialListings = [
-  {
-    id: '1',
-    foodName: 'Sourdough Bread',
-    quantity: 10,
-    status: 'awaiting approval' as ListingStatus,
-    claimedBy: 'Community Shelter',
-    createdAt: '2023-10-26T10:00:00Z',
-  },
-  {
-    id: '2',
-    foodName: 'Organic Apples',
-    quantity: 50,
-    status: 'active' as ListingStatus,
-    claimedBy: null,
-    createdAt: '2023-10-25T14:30:00Z',
-  },
-  {
-    id: '3',
-    foodName: 'Canned Beans',
-    quantity: 24,
-    status: 'approved' as ListingStatus,
-    claimedBy: 'Jane Doe',
-    createdAt: '2023-10-24T09:00:00Z',
-  },
-  {
-    id: '4',
-    foodName: 'Fresh Milk',
-    quantity: 12,
-    status: 'receiver incoming' as ListingStatus,
-    claimedBy: 'Local Food Bank',
-    createdAt: '2023-10-23T18:00:00Z',
-  },
-];
+import { useListings, type ListingStatus } from '@/hooks/use-listings';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const statusStyles: { [key in ListingStatus]: string } = {
   active: 'bg-green-500/20 text-green-700 border-green-500/40',
@@ -107,7 +65,7 @@ const statusStyles: { [key in ListingStatus]: string } = {
 
 
 export default function MyListingsPage() {
-  const [listings, setListings] = useState(initialListings);
+  const { listings, setListings, isInitialized } = useListings();
   const { toast } = useToast();
 
   const handleApprove = (listingId: string, pickupOption: 'otp' | 'leave') => {
@@ -138,7 +96,7 @@ export default function MyListingsPage() {
   };
 
   const handleDelivered = (listingId: string) => {
-     const updatedListings = listings.filter((l) => l.id !== listingId);
+    const updatedListings = listings.filter((l) => l.id !== listingId);
     setListings(updatedListings);
     toast({
         title: 'Transaction Complete!',
@@ -184,7 +142,20 @@ export default function MyListingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {listings.map((listing) => (
+                  {!isInitialized && (
+                    <>
+                      <TableRow>
+                        <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                      </TableRow>
+                       <TableRow>
+                        <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                      </TableRow>
+                       <TableRow>
+                        <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                      </TableRow>
+                    </>
+                  )}
+                  {isInitialized && listings.map((listing) => (
                     <TableRow key={listing.id}>
                       <TableCell className="font-medium">
                         {listing.foodName}
@@ -282,6 +253,13 @@ export default function MyListingsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
+                   {isInitialized && listings.length === 0 && (
+                     <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            You have no active listings.
+                        </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
