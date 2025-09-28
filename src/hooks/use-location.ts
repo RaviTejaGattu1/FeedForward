@@ -29,10 +29,8 @@ export function useLocation(
   } | null>(null);
 
   const handleGeolocate = useCallback(() => {
-    if (!isMapsLoaded || !navigator.geolocation) {
-      if (isMapsLoaded && !navigator.geolocation) {
-        console.error("Error: Your browser doesn't support geolocation.");
-      }
+    if (!navigator.geolocation) {
+      console.error("Error: Your browser doesn't support geolocation.");
       return;
     }
 
@@ -63,13 +61,14 @@ export function useLocation(
         console.error('Error: The Geolocation service failed.');
       }
     );
-  }, [isMapsLoaded, onLocationSelect, onValueChange]);
+  }, [onValueChange, onLocationSelect]);
 
   useEffect(() => {
     if (isGeolocateDefault && isMapsLoaded) {
       handleGeolocate();
     }
-  }, [isGeolocateDefault, isMapsLoaded, handleGeolocate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGeolocateDefault, isMapsLoaded]);
 
   return {
     mapCenter,
