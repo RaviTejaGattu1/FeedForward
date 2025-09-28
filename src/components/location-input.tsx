@@ -66,20 +66,18 @@ export function LocationInput({
     markerPosition,
     setMarkerPosition,
     handleGeolocate,
-  } = useLocation(onLocationSelect, isGeolocateDefault);
+  } = useLocation(onValueChange, onLocationSelect, isGeolocateDefault);
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
-    if (value === undefined && currentLocation) {
-      onValueChange?.(currentLocation.formattedAddress);
-    }
+    // This effect is kept to handle the geolocate default case through the hook
   }, [currentLocation, onValueChange, value]);
 
   const handlePlaceChanged = () => {
     if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
+      const place = autocomplete.current.getPlace();
       if (place.geometry && place.geometry.location) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();

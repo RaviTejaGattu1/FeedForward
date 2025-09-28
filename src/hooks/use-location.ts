@@ -10,6 +10,7 @@ type LocationData = {
 };
 
 export function useLocation(
+  onValueChange?: (value: string) => void,
   onLocationSelect?: (
     lat: number,
     lng: number,
@@ -31,6 +32,8 @@ export function useLocation(
 
   const handleGeolocate = useCallback(
     (lat?: number, lng?: number) => {
+      if (typeof window.google === 'undefined') return;
+      
       const geocoder = new window.google.maps.Geocoder();
       const latlng = lat && lng ? { lat, lng } : null;
 
@@ -49,9 +52,8 @@ export function useLocation(
           setMapCenter({ lat: newLat, lng: newLng });
           setMarkerPosition({ lat: newLat, lng: newLng });
 
-          if (onLocationSelect) {
-            onLocationSelect(newLat, newLng, formattedAddress);
-          }
+          onValueChange?.(formattedAddress);
+          onLocationSelect?.(newLat, newLng, formattedAddress);
         } else {
           console.error(
             'Geocode was not successful for the following reason: ' + status
@@ -79,7 +81,7 @@ export function useLocation(
         console.error("Error: Your browser doesn't support geolocation.");
       }
     },
-    [onLocationSelect]
+    [onLocationSelect, onValueChange]
   );
 
   useEffect(() => {

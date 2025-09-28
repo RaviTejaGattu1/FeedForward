@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { LocationInput } from '@/components/location-input';
+import { DynamicLocationInput } from '@/components/dynamic-location-input';
 
 const mockListings = [
   {
@@ -109,7 +109,7 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      <LocationInput
+                      <DynamicLocationInput
                         isGeolocateDefault={true}
                         value={location}
                         onValueChange={setLocation}

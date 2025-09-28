@@ -21,7 +21,7 @@ import { Lightbulb, Upload } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
-import { LocationInput } from '@/components/location-input';
+import { DynamicLocationInput } from '@/components/dynamic-location-input';
 
 export default function ProvidePage() {
   const [foodName, setFoodName] = useState('');
@@ -183,7 +183,7 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-              <LocationInput
+              <DynamicLocationInput
                 value={address}
                 onValueChange={setAddress}
                 onLocationSelect={(lat, lng, formattedAddress) => {
