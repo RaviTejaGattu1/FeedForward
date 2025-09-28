@@ -83,7 +83,7 @@ export function useLocation(
   );
 
   useEffect(() => {
-    if (isGeolocateDefault && typeof window.google !== 'undefined') {
+    if (isGeolocateDefault && typeof window.google !== 'undefined' && typeof window.navigator !== 'undefined') {
       handleGeolocate();
     }
   }, [isGeolocateDefault, handleGeolocate]);
