@@ -22,7 +22,8 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -45,10 +46,20 @@ export default function RegisterPage() {
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
       // After creating the user, update their profile with the name
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
+      if (user) {
+        await updateProfile(user, {
           displayName: name,
+        });
+
+        // Create a document in the 'users' collection
+        await setDoc(doc(db, 'users', user.uid), {
+            uid: user.uid,
+            displayName: name,
+            email: user.email,
+            createdAt: serverTimestamp(),
         });
       }
 
