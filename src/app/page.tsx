@@ -33,9 +33,9 @@ export default async function Home() {
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl font-headline bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
               Welcome to FeedForward
             </h1>
-            <p className="mx-auto mt-6 max-w-[700px] text-lg text-muted-foreground md:text-xl">
+            <div className="mx-auto mt-6 max-w-[700px] text-lg text-muted-foreground md:text-xl">
                <MotivationalBlurb />
-            </p>
+            </div>
             {apiKeyMissing && (
                 <Alert variant="destructive" className="mt-8 max-w-2xl mx-auto text-left">
                   <AlertTriangle className="h-4 w-4" />
