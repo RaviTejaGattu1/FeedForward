@@ -46,9 +46,11 @@ export default function RegisterPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       // After creating the user, update their profile with the name
-      await updateProfile(userCredential.user, {
-        displayName: name,
-      });
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+          displayName: name,
+        });
+      }
 
       setIsSuccess(true);
       toast({
@@ -64,6 +66,8 @@ export default function RegisterPage() {
         friendlyMessage = 'The password is too weak. Please choose a stronger password (at least 6 characters).';
       } else if (firebaseError.code === 'auth/invalid-email') {
         friendlyMessage = 'The email address is not valid. Please enter a valid email.';
+      } else if (firebaseError.code === 'auth/invalid-credential') {
+        friendlyMessage = 'The credentials provided are invalid. Please check the email and password and try again.';
       }
       setError(friendlyMessage);
     } finally {
