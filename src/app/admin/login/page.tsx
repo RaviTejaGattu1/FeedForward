@@ -92,7 +92,9 @@ export default function AdminLoginPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={handleSignIn} disabled={isLoading}>
+            <Button className="w-full" onClick={() => {
+                handleSignIn().catch(console.error);
+              }} disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign in'}
             </Button>
           </CardFooter>

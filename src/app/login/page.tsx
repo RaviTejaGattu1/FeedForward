@@ -90,7 +90,9 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" onClick={handleSignIn} disabled={isLoading}>
+            <Button className="w-full" onClick={() => {
+                handleSignIn().catch(console.error);
+              }} disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign in'}
             </Button>
             <div className="mt-4 text-center text-sm">

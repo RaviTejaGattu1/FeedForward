@@ -145,7 +145,9 @@ export default function RegisterPage() {
                 'bg-success text-success-foreground hover:bg-success/90': isFormValid,
               })}
               disabled={!isFormValid || isLoading || isSuccess}
-              onClick={handleCreateAccount}
+              onClick={() => {
+                handleCreateAccount().catch(console.error);
+              }}
             >
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
