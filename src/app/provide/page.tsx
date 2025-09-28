@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
@@ -74,12 +73,15 @@ export default function ProvidePage() {
           })
           .catch((error) => {
             console.error('Error generating recipe suggestion:', error);
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description:
-                'Could not generate a recipe suggestion at this time.',
-            });
+            // Don't show toast for API key errors, as the main page already has a warning
+            if (!error.message.includes('GEMINI_API_KEY')) {
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description:
+                  'Could not generate a recipe suggestion at this time.',
+              });
+            }
           })
           .finally(() => {
             setIsGenerating(false);
@@ -90,7 +92,7 @@ export default function ProvidePage() {
     return () => {
       clearTimeout(handler);
     };
-  }, [foodName, isGenerating, toast]);
+  }, [foodName, toast]);
 
   const handleCreateListing = () => {
     toast({
@@ -100,7 +102,7 @@ export default function ProvidePage() {
     router.push('/listings');
   };
 
-  const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion);
+  const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion || isGenerating);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -201,7 +203,7 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-               {typeof window !== 'undefined' && isLoaded ? (
+              {typeof window !== 'undefined' && isLoaded ? (
                 <LocationInput
                   value={address}
                   onValueChange={setAddress}
@@ -210,7 +212,7 @@ export default function ProvidePage() {
                   }}
                 />
               ) : (
-                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-10 w-full" />
               )}
             </div>
 
@@ -232,7 +234,7 @@ export default function ProvidePage() {
                 </AlertDescription>
               </Alert>
             )}
-             {isGenerating && !recipeSuggestion && (
+            {isGenerating && !recipeSuggestion && (
               <Alert>
                 <Lightbulb className="h-4 w-4 animate-pulse" />
                 <AlertTitle>Thinking of a recipe...</AlertTitle>
