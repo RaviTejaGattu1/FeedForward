@@ -2,9 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from './use-auth';
+import { useAuth, type User } from './use-auth';
 
 export type UserProfile = {
   uid: string;
@@ -12,53 +10,62 @@ export type UserProfile = {
   displayName: string;
   phone?: string;
   address?: string;
-  createdAt: any;
-  updatedAt?: any;
+  createdAt: Date;
+  updatedAt?: Date;
 };
+
+// In-memory store for user profiles
+const mockProfiles: { [uid: string]: UserProfile } = {};
 
 export function useUserProfile() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    if (user && !mockProfiles[user.uid]) {
+        mockProfiles[user.uid] = {
+            uid: user.uid,
+            email: user.email!,
+            displayName: user.displayName!,
+            createdAt: new Date(),
+        };
+    }
+  }, [user]);
 
   useEffect(() => {
+    setLoading(true);
     if (!user) {
       setProfile(null);
       setLoading(false);
       return;
     }
-
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setProfile(docSnap.data() as UserProfile);
-      } else {
-        // This case might happen briefly if the user was just created.
-        // The registration flow should create the doc.
-        console.log("No such document!");
-      }
-      setLoading(false);
-    }, (error) => {
-        console.error("Failed to fetch user profile:", error);
+    
+    // Simulate fetching profile
+    setTimeout(() => {
+        const userProfile = mockProfiles[user.uid];
+        if (userProfile) {
+            setProfile(userProfile);
+        }
         setLoading(false);
-    });
+    }, 300);
 
-    return () => unsubscribe();
   }, [user]);
   
   const updateUserProfile = useCallback(
     async (updates: Partial<Pick<UserProfile, 'displayName' | 'phone' | 'address'>>) => {
       if (!user) return;
       
-      const userDocRef = doc(db, 'users', user.uid);
-      try {
-        await setDoc(userDocRef, { 
-            ...updates, 
-            updatedAt: serverTimestamp() 
-        }, { merge: true });
-      } catch (error) {
-        console.error("Error updating user profile: ", error);
-      }
+      setProfile(prev => {
+          if (!prev) return null;
+          const updatedProfile = {
+              ...prev,
+              ...updates,
+              updatedAt: new Date(),
+          };
+          mockProfiles[user.uid] = updatedProfile;
+          return updatedProfile;
+      });
     },
     [user]
   );

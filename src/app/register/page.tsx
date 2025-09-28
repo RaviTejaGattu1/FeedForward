@@ -21,9 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -32,7 +30,7 @@ export default function RegisterPage() {
   const [isFormValid, setIsFormValid] = useState(false);
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { register, loading: isLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -42,47 +40,17 @@ export default function RegisterPage() {
 
   const handleCreateAccount = async () => {
     setError('');
-    setIsLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // After creating the user, update their profile with the name
-      if (user) {
-        await updateProfile(user, {
-          displayName: name,
-        });
-
-        // Create a document in the 'users' collection
-        await setDoc(doc(db, 'users', user.uid), {
-            uid: user.uid,
-            displayName: name,
-            email: user.email,
-            createdAt: serverTimestamp(),
-        });
-      }
-
+      await register(name, email);
       setIsSuccess(true);
       toast({
         title: 'Registration Successful!',
         description: 'Your account has been created.',
       });
       router.push('/dashboard');
-    } catch (firebaseError: any) {
-      let friendlyMessage = 'An unexpected error occurred. Please try again.';
-      if (firebaseError.code === 'auth/email-already-in-use') {
-        friendlyMessage = 'This email address is already in use. Please use a different email.';
-      } else if (firebaseError.code === 'auth/weak-password') {
-        friendlyMessage = 'The password is too weak. Please choose a stronger password (at least 6 characters).';
-      } else if (firebaseError.code === 'auth/invalid-email') {
-        friendlyMessage = 'The email address is not valid. Please enter a valid email.';
-      } else if (firebaseError.code === 'auth/invalid-credential') {
-        friendlyMessage = 'The credentials provided are invalid. Please check the email and password and try again.';
-      }
-      setError(friendlyMessage);
-    } finally {
-      setIsLoading(false);
+    } catch (authError: any) {
+      setError(authError.message || 'An unexpected error occurred. Please try again.');
     }
   };
 

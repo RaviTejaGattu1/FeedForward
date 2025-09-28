@@ -14,17 +14,15 @@ import { Button } from '@/components/ui/button';
 import { UserCircle, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { useAuth } from '@/hooks/use-auth';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 export function AppHeader() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    await signOut();
     router.push('/');
   };
 

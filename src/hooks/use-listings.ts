@@ -3,18 +3,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from './use-auth';
 
 export type ListingStatus =
@@ -35,9 +23,35 @@ export type Listing = {
   imageUrl?: string;
   status: ListingStatus;
   claimedBy: string | null;
-  createdAt: any; // Firestore timestamp
+  createdAt: Date;
   userId: string;
 };
+
+// In-memory store for listings
+let mockListings: Listing[] = [
+    {
+        id: 'mock-1',
+        foodName: 'Sourdough Bread',
+        foodType: 'Baked Goods',
+        quantity: 5,
+        address: '123 Main St, Anytown',
+        status: 'active',
+        claimedBy: null,
+        createdAt: new Date(Date.now() - 3600 * 1000), // 1 hour ago
+        userId: 'admin-user-id',
+    },
+    {
+        id: 'mock-2',
+        foodName: 'Fresh Apples',
+        foodType: 'Produce',
+        quantity: 20,
+        address: '456 Oak Ave, Anytown',
+        status: 'awaiting approval',
+        claimedBy: 'Community Shelter',
+        createdAt: new Date(Date.now() - 3600 * 2000), // 2 hours ago
+        userId: 'admin-user-id',
+    }
+];
 
 export function useListings() {
   const { user } = useAuth();
@@ -51,32 +65,13 @@ export function useListings() {
       setIsInitialized(false);
       return;
     }
-
-    const listingsRef = collection(db, 'listings');
-    const q = query(listingsRef, where('userId', '==', user.uid));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (querySnapshot) => {
-        const listingsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Listing[];
-        setListings(listingsData);
+    
+    // Simulate fetching data
+    setTimeout(() => {
+        setListings(mockListings.filter(l => l.userId === user.uid));
         setIsInitialized(true);
-      },
-      (error) => {
-        console.error('Error fetching listings:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not fetch your listings at this time.',
-        });
-        setIsInitialized(true);
-      }
-    );
+    }, 500);
 
-    return () => unsubscribe();
   }, [user, toast]);
 
   const addListing = useCallback(
@@ -95,64 +90,41 @@ export function useListings() {
         return;
       }
 
-      try {
-        await addDoc(collection(db, 'listings'), {
+      const newListing: Listing = {
           ...newListingData,
+          id: `listing-${Date.now()}`,
           userId: user.uid,
           status: 'active',
           claimedBy: null,
-          createdAt: serverTimestamp(),
-        });
-        toast({
-          title: 'Success!',
-          description: 'Your food listing has been created.',
-        });
-      } catch (error) {
-        console.error('Error adding listing:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not create your listing at this time.',
-        });
+          createdAt: new Date(),
       }
+      mockListings.push(newListing);
+      setListings(prev => [...prev, newListing]);
+
+      toast({
+        title: 'Success!',
+        description: 'Your food listing has been created.',
+      });
     },
     [user, toast]
   );
 
   const updateListing = useCallback(
     async (listingId: string, updates: Partial<Listing>) => {
-      const listingDocRef = doc(db, 'listings', listingId);
-      try {
-        await updateDoc(listingDocRef, updates);
-      } catch (error) {
-        console.error('Error updating listing:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not update the listing.',
-        });
-      }
+      mockListings = mockListings.map(l => l.id === listingId ? {...l, ...updates} : l);
+      setListings(prev => prev.map(l => l.id === listingId ? {...l, ...updates} : l));
     },
-    [toast]
+    []
   );
 
   const removeListing = useCallback(
     async (listingId: string) => {
-      const listingDocRef = doc(db, 'listings', listingId);
-      try {
-        await deleteDoc(listingDocRef);
+        mockListings = mockListings.filter(l => l.id !== listingId);
+        setListings(prev => prev.filter(l => l.id !== listingId));
         toast({
             title: 'Listing Removed',
             description: 'The listing has been successfully removed.',
         })
-      } catch (error) {
-        console.error('Error removing listing:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not remove the listing.',
-        });
-      }
     },
     [toast]
   );
@@ -163,7 +135,5 @@ export function useListings() {
     updateListing,
     removeListing,
     isInitialized,
-    // The setListings from useState is intentionally not returned
-    // to encourage using the specific action functions above.
   };
 }

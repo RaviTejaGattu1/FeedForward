@@ -17,8 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
@@ -27,24 +26,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, loading: isLoading } = useAuth();
 
   const handleSignIn = async () => {
     setError('');
-    setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signIn(email);
       router.push('/dashboard');
-    } catch (firebaseError: any) {
-      let friendlyMessage = 'An unexpected error occurred. Please try again.';
-      if (firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential') {
-        friendlyMessage = 'Invalid email or password. Please try again.';
-      } else if (firebaseError.code === 'auth/invalid-email') {
-        friendlyMessage = 'The email address is not valid. Please enter a valid email.';
-      }
-      setError(friendlyMessage);
-    } finally {
-      setIsLoading(false);
+    } catch (authError: any) {
+      setError(authError.message || 'An unexpected error occurred. Please try again.');
     }
   };
 

@@ -1,7 +1,6 @@
 
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -17,36 +16,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('admin@feedforward.com');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, loading: isLoading } = useAuth();
 
   const handleSignIn = async () => {
     setError('');
-    setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signIn(email);
       // In a real app, you would check if the user has an 'admin' role
       // before redirecting to an admin dashboard.
-      router.push('/dashboard');
-    } catch (firebaseError: any) {
-      let friendlyMessage = 'An unexpected error occurred. Please try again.';
-       if (firebaseError.code === 'auth/user-not-found' || firebaseError.code === 'auth/wrong-password' || firebaseError.code === 'auth/invalid-credential') {
-        friendlyMessage = 'Invalid admin credentials. Please try again.';
-      } else if (firebaseError.code === 'auth/invalid-email') {
-        friendlyMessage = 'The email address is not valid. Please enter a valid email.';
+      if (email === 'admin@feedforward.com') {
+        router.push('/dashboard');
+      } else {
+        setError('You are not authorized to access the admin dashboard.');
       }
-      setError(friendlyMessage);
-    } finally {
-      setIsLoading(false);
+    } catch (authError: any) {
+      setError(authError.message || 'An unexpected error occurred. Please try again.');
     }
   };
 
