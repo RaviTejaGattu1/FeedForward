@@ -1,11 +1,12 @@
+
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
-import { generateHomepageContent } from '@/ai/flows/homepage-statistics-blurb';
 import { Button } from '@/components/ui/button';
 import { Flame, Truck, Users, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { StatCard } from '@/components/stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { MotivationalBlurb } from '@/components/motivational-blurb';
 
 export default async function Home() {
   const stats = {
@@ -14,21 +15,7 @@ export default async function Home() {
     livesImpacted: 1000,
   };
 
-  let motivationalBlurb = 'Join us in the fight against hunger. Every contribution makes a difference.';
-  let apiKeyMissing = false;
-
-  try {
-    const content = await generateHomepageContent(stats);
-    motivationalBlurb = content.motivationalBlurb;
-  } catch (e: any) {
-    if (e.message.includes('GEMINI_API_KEY')) {
-      apiKeyMissing = true;
-    } else {
-      // Re-throw other errors
-      throw e;
-    }
-  }
-
+  const apiKeyMissing = !process.env.GEMINI_API_KEY;
 
   const compactFormat = (num: number) =>
     new Intl.NumberFormat('en-US', {
@@ -47,7 +34,7 @@ export default async function Home() {
               Welcome to FeedForward
             </h1>
             <p className="mx-auto mt-6 max-w-[700px] text-lg text-muted-foreground md:text-xl">
-              {motivationalBlurb}
+               <MotivationalBlurb />
             </p>
             {apiKeyMissing && (
                 <Alert variant="destructive" className="mt-8 max-w-2xl mx-auto text-left">
