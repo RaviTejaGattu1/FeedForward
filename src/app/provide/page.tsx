@@ -36,6 +36,8 @@ const MAP_LIBRARIES = ['places'] as (
   | 'visualization'
 )[];
 
+const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+
 export default function ProvidePage() {
   const { user, loading } = useAuth();
   const [foodName, setFoodName] = useState('');
@@ -58,12 +60,14 @@ export default function ProvidePage() {
     setIsClient(true);
   }, []);
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey:
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
-      'dummy-key-for-local-dev',
-    libraries: MAP_LIBRARIES,
-  });
+  const { isLoaded } = useLoadScript(
+    googleMapsApiKey
+      ? {
+          googleMapsApiKey: googleMapsApiKey,
+          libraries: MAP_LIBRARIES,
+        }
+      : { skip: true }
+  );
 
   const isFormFilled = foodName && foodType && quantity && address;
 
@@ -249,7 +253,12 @@ export default function ProvidePage() {
                   }}
                 />
               ) : (
-                <Skeleton className="h-10 w-full" />
+                <Input 
+                  id="address"
+                  placeholder="Enter address manually"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
               )}
             </div>
 
