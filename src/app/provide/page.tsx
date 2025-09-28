@@ -63,7 +63,7 @@ export default function ProvidePage() {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (foodName && !isGenerating) {
+      if (foodName) {
         setIsGenerating(true);
         setIsSuggestionAcknowledged(false);
         setRecipeSuggestion('');
@@ -224,13 +224,15 @@ export default function ProvidePage() {
                 </AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
                   <Balancer>{recipeSuggestion}</Balancer>
-                  <Button
-                    size="sm"
-                    onClick={() => setIsSuggestionAcknowledged(true)}
-                    className="bg-accent text-accent-foreground hover:bg-accent/90"
-                  >
-                    Ok, Got it
-                  </Button>
+                  {!isSuggestionAcknowledged && (
+                    <Button
+                      size="sm"
+                      onClick={() => setIsSuggestionAcknowledged(true)}
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                    >
+                      Ok, Got it
+                    </Button>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
