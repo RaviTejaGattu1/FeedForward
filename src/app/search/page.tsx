@@ -41,6 +41,8 @@ const MAP_LIBRARIES = ['places'] as (
   | 'visualization'
 )[];
 
+const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+
 const mockListings = [
   {
     id: '1',
@@ -92,12 +94,14 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [location, setLocation] = useState('');
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey:
-      process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ??
-      'dummy-key-for-local-dev',
-    libraries: MAP_LIBRARIES,
-  });
+  const { isLoaded } = useLoadScript(
+    googleMapsApiKey
+      ? {
+          googleMapsApiKey,
+          libraries: MAP_LIBRARIES,
+        }
+      : { skip: true }
+  );
 
   const handleSearch = () => {
     // In a real app, you'd fetch listings based on the search criteria.
@@ -126,7 +130,7 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      {typeof window !== 'undefined' && isLoaded ? (
+                      {typeof window !== 'undefined' && isLoaded && googleMapsApiKey ? (
                         <LocationInput
                           isGeolocateDefault={true}
                           value={location}
@@ -136,7 +140,12 @@ export default function SearchPage() {
                           }}
                         />
                       ) : (
-                        <Skeleton className="h-20 w-full" />
+                         <Input
+                          id="location"
+                          placeholder="Enter your city or address"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                        />
                       )}
                     </div>
                     <div className="grid gap-2">

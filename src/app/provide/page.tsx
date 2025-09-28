@@ -244,7 +244,7 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label htmlFor="address">Address</Label>
-               {isClient && isLoaded ? (
+               {isClient && isLoaded && googleMapsApiKey ? (
                 <LocationInput
                   value={address}
                   onValueChange={setAddress}
