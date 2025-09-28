@@ -10,7 +10,7 @@ const LocationInputWithNoSSR = dynamic(
   () => import('./location-input').then((mod) => mod.LocationInput),
   {
     ssr: false,
-    loading: () => <Skeleton className="h-10 w-full" />,
+    loading: () => <Skeleton className="h-20 w-full" />,
   }
 );
 

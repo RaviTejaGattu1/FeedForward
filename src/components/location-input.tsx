@@ -60,24 +60,19 @@ export function LocationInput({
   });
 
   const {
-    currentLocation,
     mapCenter,
     setMapCenter,
     markerPosition,
     setMarkerPosition,
     handleGeolocate,
-  } = useLocation(onValueChange, onLocationSelect, isGeolocateDefault);
+  } = useLocation(isLoaded, onValueChange, onLocationSelect, isGeolocateDefault);
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
-  useEffect(() => {
-    // This effect is kept to handle the geolocate default case through the hook
-  }, [currentLocation, onValueChange, value]);
-
   const handlePlaceChanged = () => {
     if (autocompleteRef.current) {
-      const place = autocomplete.current.getPlace();
+      const place = autocompleteRef.current.getPlace();
       if (place.geometry && place.geometry.location) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
@@ -104,7 +99,7 @@ export function LocationInput({
   }
 
   if (!isLoaded) {
-    return <Skeleton className="h-10 w-full" />;
+    return <Skeleton className="h-20 w-full" />;
   }
 
   const InputComponent = variant === 'textarea' ? Textarea : Input;
@@ -128,8 +123,7 @@ export function LocationInput({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2"
-            aria-label="Pinpoint Location"
+            className="absolute top-1 right-1"
           >
             <MapPin className="h-5 w-5" />
           </Button>
@@ -159,7 +153,17 @@ export function LocationInput({
             <Button
               onClick={() => {
                 if (markerPosition) {
-                  handleGeolocate(markerPosition.lat, markerPosition.lng);
+                  // Manually geocode the selected pin position
+                  const geocoder = new window.google.maps.Geocoder();
+                  geocoder.geocode({ location: markerPosition }, (results, status) => {
+                     if (status === 'OK' && results?.[0]) {
+                        const formattedAddress = results[0].formatted_address;
+                        onValueChange?.(formattedAddress);
+                        if (onLocationSelect) {
+                           onLocationSelect(markerPosition.lat, markerPosition.lng, formattedAddress);
+                        }
+                     }
+                  });
                 }
                 setIsMapOpen(false);
               }}

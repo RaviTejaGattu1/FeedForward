@@ -10,6 +10,7 @@ type LocationData = {
 };
 
 export function useLocation(
+  isMapsLoaded: boolean,
   onValueChange?: (value: string) => void,
   onLocationSelect?: (
     lat: number,
@@ -18,9 +19,6 @@ export function useLocation(
   ) => void,
   isGeolocateDefault = false
 ) {
-  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(
-    null
-  );
   const [mapCenter, setMapCenter] = useState({
     lat: 40.7128,
     lng: -74.006,
@@ -30,68 +28,50 @@ export function useLocation(
     lng: number;
   } | null>(null);
 
-  const handleGeolocate = useCallback(
-    (lat?: number, lng?: number) => {
-      if (typeof window.google === 'undefined') return;
-      
-      const geocoder = new window.google.maps.Geocoder();
-      const latlng = lat && lng ? { lat, lng } : null;
-
-      const geocodeCallback = (
-        results: google.maps.GeocoderResult[] | null,
-        status: google.maps.GeocoderStatus
-      ) => {
-        if (status === 'OK' && results?.[0]) {
-          const formattedAddress = results[0].formatted_address;
-          const location = results[0].geometry.location;
-          const newLat = location.lat();
-          const newLng = location.lng();
-
-          const newLocation = { lat: newLat, lng: newLng, formattedAddress };
-          setCurrentLocation(newLocation);
-          setMapCenter({ lat: newLat, lng: newLng });
-          setMarkerPosition({ lat: newLat, lng: newLng });
-
-          onValueChange?.(formattedAddress);
-          onLocationSelect?.(newLat, newLng, formattedAddress);
-        } else {
-          console.error(
-            'Geocode was not successful for the following reason: ' + status
-          );
-        }
-      };
-
-      if (latlng) {
-        geocoder.geocode({ location: latlng }, geocodeCallback);
-      } else if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const newLat = position.coords.latitude;
-            const newLng = position.coords.longitude;
-            geocoder.geocode(
-              { location: { lat: newLat, lng: newLng } },
-              geocodeCallback
-            );
-          },
-          () => {
-            console.error('Error: The Geolocation service failed.');
-          }
-        );
-      } else {
+  const handleGeolocate = useCallback(() => {
+    if (!isMapsLoaded || !navigator.geolocation) {
+      if (isMapsLoaded && !navigator.geolocation) {
         console.error("Error: Your browser doesn't support geolocation.");
       }
-    },
-    [onLocationSelect, onValueChange]
-  );
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLat = position.coords.latitude;
+        const newLng = position.coords.longitude;
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode(
+          { location: { lat: newLat, lng: newLng } },
+          (results, status) => {
+            if (status === 'OK' && results?.[0]) {
+              const formattedAddress = results[0].formatted_address;
+              setMapCenter({ lat: newLat, lng: newLng });
+              setMarkerPosition({ lat: newLat, lng: newLng });
+
+              onValueChange?.(formattedAddress);
+              onLocationSelect?.(newLat, newLng, formattedAddress);
+            } else {
+              console.error(
+                'Geocode was not successful for the following reason: ' + status
+              );
+            }
+          }
+        );
+      },
+      () => {
+        console.error('Error: The Geolocation service failed.');
+      }
+    );
+  }, [isMapsLoaded, onLocationSelect, onValueChange]);
 
   useEffect(() => {
-    if (isGeolocateDefault && typeof window.google !== 'undefined' && typeof window.navigator !== 'undefined') {
+    if (isGeolocateDefault && isMapsLoaded) {
       handleGeolocate();
     }
-  }, [isGeolocateDefault, handleGeolocate]);
+  }, [isGeolocateDefault, isMapsLoaded, handleGeolocate]);
 
   return {
-    currentLocation,
     mapCenter,
     setMapCenter,
     markerPosition,

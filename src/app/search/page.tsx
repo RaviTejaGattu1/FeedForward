@@ -196,8 +196,7 @@ export default function SearchPage() {
             </section>
           )}
         </div>
-      </main>
-      <AppFooter />
+      </main>      <AppFooter />
     </div>
   );
 }
