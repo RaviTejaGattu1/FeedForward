@@ -28,6 +28,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
 import { type Listing, useListings } from '@/hooks/use-listings';
+import { getDistance } from 'geolib';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -39,9 +40,28 @@ const MAP_LIBRARIES = ['places'] as (
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
+const getCoordsFromAddress = (address: string): Promise<{ lat: number; lng: number }> => {
+  return new Promise((resolve, reject) => {
+    if (!google.maps.Geocoder) {
+        return reject(new Error("Geocoder not available"));
+    }
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === 'OK' && results?.[0]) {
+        const location = results[0].geometry.location;
+        resolve({ lat: location.lat(), lng: location.lng() });
+      } else {
+        reject(new Error('Geocode was not successful for the following reason: ' + status));
+      }
+    });
+  });
+};
+
 export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [location, setLocation] = useState('');
+  const [range, setRange] = useState('5');
+  const [rangeUnit, setRangeUnit] = useState('miles');
   const { listings, isInitialized } = useListings({ fetchAll: true });
   const [filteredListings, setFilteredListings] = useState<Listing[]>([]);
 
@@ -61,12 +81,50 @@ export default function SearchPage() {
     }
   }, [listings, isInitialized])
 
-  const handleSearch = () => {
-    // In a real app, you'd fetch listings based on the search criteria.
-    // For now, we'll just filter the existing list.
-    // This is where you would add more complex filtering logic based on location, range, etc.
-    setFilteredListings(listings.filter(l => l.status === 'active'));
+  const handleSearch = async () => {
     setHasSearched(true);
+    if (!location) {
+        // If no location, show all active listings
+        setFilteredListings(listings.filter(l => l.status === 'active'));
+        return;
+    }
+    try {
+        const userCoords = await getCoordsFromAddress(location);
+        
+        const listingsWithCoords = await Promise.all(
+            listings
+                .filter(l => l.status === 'active')
+                .map(async (listing) => {
+                    try {
+                        const listingCoords = await getCoordsFromAddress(listing.address);
+                        return { ...listing, coords: listingCoords };
+                    } catch (e) {
+                        console.error(`Could not geocode address for listing ${listing.id}: ${listing.address}`);
+                        return { ...listing, coords: null };
+                    }
+                })
+        );
+        
+        const rangeInMeters = parseInt(range) * (rangeUnit === 'miles' ? 1609.34 : 1000);
+
+        const nearbyListings = listingsWithCoords.filter(listing => {
+            if (!listing.coords) return false;
+            
+            const distance = getDistance(
+                { latitude: userCoords.lat, longitude: userCoords.lng },
+                { latitude: listing.coords.lat, longitude: listing.coords.lng }
+            );
+
+            return distance <= rangeInMeters;
+        });
+
+        setFilteredListings(nearbyListings);
+
+    } catch (e) {
+        console.error("Error during search:", e);
+        // Show all active if user location geocoding fails
+        setFilteredListings(listings.filter(l => l.status === 'active'));
+    }
   };
 
   return (
@@ -113,8 +171,8 @@ export default function SearchPage() {
                     <div className="grid gap-2">
                       <Label htmlFor="range">Find within range</Label>
                       <div className="flex gap-2">
-                        <Input id="range" type="number" placeholder="5" />
-                        <Select defaultValue="miles">
+                        <Input id="range" type="number" value={range} onChange={e => setRange(e.target.value)} />
+                        <Select value={rangeUnit} onValueChange={setRangeUnit}>
                           <SelectTrigger className="w-[120px]">
                             <SelectValue placeholder="Units" />
                           </SelectTrigger>
@@ -203,7 +261,7 @@ export default function SearchPage() {
                ) : (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <p className="text-muted-foreground">No active listings found matching your criteria.</p>
+                        <p className="text-muted-foreground">{hasSearched ? "No active listings found matching your criteria." : "No active listings found."}</p>
                     </CardContent>
                 </Card>
                )}
