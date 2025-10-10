@@ -53,6 +53,7 @@ export default function ProvidePage() {
   const [weight, setWeight] = useState('');
   const [volume, setVolume] = useState('');
   const [address, setAddress] = useState('');
+  const [locationCoords, setLocationCoords] = useState<{lat: number, lng: number} | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSuggestionAcknowledged, setIsSuggestionAcknowledged] =
@@ -77,6 +78,9 @@ export default function ProvidePage() {
             setWeight(listing.weight || '');
             setVolume(listing.volume || '');
             setImagePreview(listing.imageUrl || null);
+            if (listing.latitude && listing.longitude) {
+              setLocationCoords({ lat: listing.latitude, lng: listing.longitude });
+            }
         } else {
             toast({
                 variant: 'destructive',
@@ -140,6 +144,8 @@ export default function ProvidePage() {
         weight,
         volume,
         imageUrl: imagePreview || undefined,
+        latitude: locationCoords?.lat,
+        longitude: locationCoords?.lng,
     };
 
     if (isEditMode && editId) {
@@ -150,6 +156,10 @@ export default function ProvidePage() {
         });
     } else {
         await addListing(listingData);
+         toast({
+            title: 'Success!',
+            description: 'Your food listing has been created.',
+        });
     }
     router.push('/listings');
   };
@@ -191,9 +201,32 @@ export default function ProvidePage() {
   }
 
   if (!user && !loading) {
-    router.push('/login');
-    return null;
+     return (
+      <div className="flex min-h-screen flex-col">
+        <AppHeader />
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+           <Card className="w-full max-w-md text-center">
+              <CardHeader>
+                  <CardTitle className="text-2xl">Please Log In</CardTitle>
+                  <CardDescription>
+                      You need to be logged in to provide food.
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Button asChild size="lg">
+                      <Link href="/login">
+                          <LogIn className="mr-2" />
+                          Go to Login
+                      </Link>
+                  </Button>
+              </CardContent>
+           </Card>
+        </main>
+        <AppFooter />
+      </div>
+    );
   }
+
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -335,6 +368,7 @@ export default function ProvidePage() {
                   onValueChange={setAddress}
                   onLocationSelect={(lat, lng, formattedAddress) => {
                     setAddress(formattedAddress);
+                    setLocationCoords({lat, lng});
                   }}
                 />
               ) : (
@@ -396,3 +430,5 @@ export default function ProvidePage() {
     </div>
   );
 }
+
+    

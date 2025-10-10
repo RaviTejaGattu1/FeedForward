@@ -11,7 +11,8 @@ export function useLocation(
     lng: number,
     formattedAddress: string
   ) => void,
-  isGeolocateDefault = false
+  isGeolocateDefault = false,
+  onGeolocateError?: (message: string) => void
 ) {
   const [mapCenter, setMapCenter] = useState({
     lat: 40.7128,
@@ -24,8 +25,8 @@ export function useLocation(
 
   const handleGeolocate = useCallback(() => {
     if (!navigator.geolocation) {
-      console.error("Error: Your browser doesn't support geolocation.");
-      return;
+       onGeolocateError?.("Your browser doesn't support geolocation.");
+       return;
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -44,18 +45,16 @@ export function useLocation(
               onValueChange?.(formattedAddress);
               onLocationSelect?.(newLat, newLng, formattedAddress);
             } else {
-              console.error(
-                'Geocode was not successful for the following reason: ' + status
-              );
+              onGeolocateError?.('Could not determine address from your location.');
             }
           }
         );
       },
       () => {
-        console.error('Error: The Geolocation service failed.');
+        onGeolocateError?.('Geolocation permission denied. Please enable it in your browser settings.');
       }
     );
-  }, [onValueChange, onLocationSelect]);
+  }, [onValueChange, onLocationSelect, onGeolocateError]);
 
   useEffect(() => {
     if (isGeolocateDefault && isMapsLoaded) {
@@ -71,3 +70,5 @@ export function useLocation(
     handleGeolocate,
   };
 }
+
+    

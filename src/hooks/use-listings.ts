@@ -20,6 +20,8 @@ export type Listing = {
   weight?: string;
   volume?: string;
   address: string;
+  latitude?: number;
+  longitude?: number;
   imageUrl?: string;
   status: ListingStatus;
   claimedBy: string | null;
@@ -56,6 +58,8 @@ const getInitialListings = (): Listing[] => {
             foodType: 'Baked Goods',
             quantity: 5,
             address: '123 Main St, Anytown',
+            latitude: 40.7128,
+            longitude: -74.0060,
             status: 'active',
             claimedBy: null,
             createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
@@ -67,6 +71,8 @@ const getInitialListings = (): Listing[] => {
             foodType: 'Produce',
             quantity: 20,
             address: '456 Oak Ave, Anytown',
+            latitude: 40.7228,
+            longitude: -74.0160,
             status: 'awaiting approval',
             claimedBy: 'Community Shelter',
             createdAt: new Date(Date.now() - 3600 * 2000).toISOString(),
@@ -139,7 +145,6 @@ export const listingsApi = {
 export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const { forCurrentUser = false } = options;
   const { user } = useAuth();
-  const { toast } = useToast();
 
   // useSyncExternalStore makes React aware of our external store.
   const allListings = useSyncExternalStore(subscribe, listingsApi.getAllListings, listingsApi.getAllListings);
@@ -162,11 +167,7 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
       >
     ) => {
       if (!user) {
-        toast({
-          variant: 'destructive',
-          title: 'Not Authenticated',
-          description: 'You must be logged in to create a listing.',
-        });
+        // This case is handled in the UI, but it's good practice to have it here.
         return;
       }
 
@@ -180,13 +181,8 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
       }
       
       listingsApi.addListing(newListing);
-
-      toast({
-        title: 'Success!',
-        description: 'Your food listing has been created.',
-      });
     },
-    [user, toast]
+    [user]
   );
 
   const updateListing = useCallback(
@@ -199,12 +195,8 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const removeListing = useCallback(
     async (listingId: string) => {
         listingsApi.removeListing(listingId);
-        toast({
-            title: 'Listing Removed',
-            description: 'The listing has been successfully removed.',
-        })
     },
-    [toast]
+    []
   );
   
   const getListingById = useCallback((listingId: string) => {
@@ -220,3 +212,5 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     getListingById,
   };
 }
+
+    

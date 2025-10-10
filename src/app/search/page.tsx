@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CookingPot, MapPin, Search } from 'lucide-react';
+import { CookingPot, MapPin, Search, AlertTriangle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
@@ -69,6 +70,7 @@ export default function SearchPage() {
   const [rangeUnit, setRangeUnit] = useState('miles');
   const { listings, isInitialized } = useListings(); // Fetches all listings by default
   const [filteredListings, setFilteredListings] = useState<ListingWithDistance[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const { isLoaded } = useLoadScript(
     googleMapsApiKey
@@ -89,6 +91,7 @@ export default function SearchPage() {
   const handleSearch = async () => {
     setIsSearching(true);
     setHasSearched(true);
+    setError(null);
 
     if (!location) {
         // If no location, show all active listings
@@ -99,6 +102,7 @@ export default function SearchPage() {
     try {
         const userCoords = await getCoordsFromAddress(location);
         if (!userCoords) {
+             setError("Could not find the location specified. Please try a different address.");
              setFilteredListings([]);
              setIsSearching(false);
              return;
@@ -108,6 +112,16 @@ export default function SearchPage() {
         
         const listingsWithDistance = await Promise.all(
             activeListings.map(async (listing) => {
+                // Do not geocode if coordinates are already available
+                if (listing.latitude && listing.longitude) {
+                     const distanceInMeters = getDistance(
+                        { latitude: userCoords.lat, longitude: userCoords.lng },
+                        { latitude: listing.latitude, longitude: listing.longitude }
+                    );
+                    const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
+                    return { ...listing, distance };
+                }
+
                 const listingCoords = await getCoordsFromAddress(listing.address);
                 if (!listingCoords) {
                     return { ...listing, distance: undefined };
@@ -134,7 +148,7 @@ export default function SearchPage() {
 
     } catch (e) {
         console.error("Error during search:", e);
-        // Show all active if user location geocoding fails
+        setError("An unexpected error occurred during the search.");
         setFilteredListings(listings.filter(l => l.status === 'active'));
     } finally {
         setIsSearching(false);
@@ -172,6 +186,7 @@ export default function SearchPage() {
                           onLocationSelect={(lat, lng, formattedAddress) => {
                             setLocation(formattedAddress);
                           }}
+                          onGeolocateError={setError}
                         />
                       ) : (
                         <Input
@@ -223,6 +238,14 @@ export default function SearchPage() {
               </CardContent>
             </Card>
           </section>
+          
+          {error && (
+            <Alert variant="destructive" className="mb-8">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Search Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Results Section */}
           {(hasSearched || isInitialized) && (
@@ -268,7 +291,7 @@ export default function SearchPage() {
                         <Button className="flex-1" asChild>
                           <Link href={`/listings/${listing.id}`}>Details</Link>
                         </Button>
-                        <Button variant="secondary" className="flex-1">
+                        <Button variant="secondary" className="flex-1" onClick={() => router.push(`/listings/${listing.id}`)}>
                           Reserve
                         </Button>
                       </CardContent>
@@ -278,7 +301,14 @@ export default function SearchPage() {
                ) : (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <p className="text-muted-foreground">{isSearching ? "Searching..." : hasSearched ? "No active listings found matching your criteria." : "No active listings found."}</p>
+                        <p className="text-muted-foreground">
+                            {isSearching 
+                                ? "Searching..." 
+                                : hasSearched 
+                                    ? "No active listings found matching your criteria. Try expanding your search range." 
+                                    : "No active listings found."
+                            }
+                        </p>
                     </CardContent>
                 </Card>
                )}
@@ -290,3 +320,5 @@ export default function SearchPage() {
     </div>
   );
 }
+
+    

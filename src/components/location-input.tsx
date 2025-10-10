@@ -34,6 +34,7 @@ type LocationInputProps = {
     formattedAddress: string
   ) => void;
   isGeolocateDefault?: boolean;
+  onGeolocateError?: (message: string) => void;
 } & Omit<ComponentProps<'input'>, 'value' | 'onChange'>;
 
 export function LocationInput({
@@ -41,10 +42,11 @@ export function LocationInput({
   onValueChange,
   onLocationSelect,
   isGeolocateDefault = false,
+  onGeolocateError,
   ...props
 }: LocationInputProps) {
   const { mapCenter, setMapCenter, markerPosition, setMarkerPosition } =
-    useLocation(true, onValueChange, onLocationSelect, isGeolocateDefault);
+    useLocation(true, onValueChange, onLocationSelect, isGeolocateDefault, onGeolocateError);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [autocomplete, setAutocomplete] =
@@ -169,3 +171,5 @@ export function LocationInput({
     </div>
   );
 }
+
+    
