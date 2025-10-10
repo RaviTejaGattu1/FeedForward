@@ -67,7 +67,7 @@ export default function SearchPage() {
   const [location, setLocation] = useState('');
   const [range, setRange] = useState('5');
   const [rangeUnit, setRangeUnit] = useState('miles');
-  const { listings, isInitialized } = useListings({ fetchAll: true });
+  const { listings, isInitialized } = useListings(); // Fetches all listings by default
   const [filteredListings, setFilteredListings] = useState<ListingWithDistance[]>([]);
 
   const { isLoaded } = useLoadScript(
@@ -278,7 +278,7 @@ export default function SearchPage() {
                ) : (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <p className="text-muted-foreground">{hasSearched ? "No active listings found matching your criteria." : "No active listings found."}</p>
+                        <p className="text-muted-foreground">{isSearching ? "Searching..." : hasSearched ? "No active listings found matching your criteria." : "No active listings found."}</p>
                     </CardContent>
                 </Card>
                )}

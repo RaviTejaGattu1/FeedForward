@@ -69,7 +69,7 @@ const statusStyles: { [key in ListingStatus]: string } = {
 
 export default function MyListingsPage() {
   const { user, loading } = useAuth();
-  const { listings, updateListing, removeListing, isInitialized } = useListings();
+  const { listings, updateListing, removeListing, isInitialized } = useListings({ forCurrentUser: true });
   const { toast } = useToast();
   const router = useRouter();
 

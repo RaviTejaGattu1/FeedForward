@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './use-auth';
 
@@ -27,7 +27,15 @@ export type Listing = {
   userId: string;
 };
 
-const getMockListings = (): Listing[] => {
+// --- Store Implementation ---
+
+// This is an in-browser store that uses localStorage and communicates changes between tabs.
+let listingsStore: Listing[] = [];
+
+// A set of listeners to call when the store changes.
+const listeners = new Set<() => void>();
+
+const getInitialListings = (): Listing[] => {
     if (typeof window === 'undefined') {
         return [];
     }
@@ -69,41 +77,83 @@ const getMockListings = (): Listing[] => {
     return initialListings;
 };
 
-const setMockListings = (listings: Listing[]) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('mockListings', JSON.stringify(listings));
+// Initialize the store from localStorage.
+listingsStore = getInitialListings();
+
+// Function to update the store and notify listeners.
+const emitChange = () => {
+  listeners.forEach(listener => listener());
+}
+
+// Update the store and localStorage.
+const setListings = (listings: Listing[]) => {
+  listingsStore = listings;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('mockListings', JSON.stringify(listings));
+  }
+  emitChange();
+}
+
+// Function for components to subscribe to changes.
+const subscribe = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+// This handles changes from other tabs.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'mockListings' && event.newValue) {
+      try {
+        listingsStore = JSON.parse(event.newValue);
+        emitChange();
+      } catch (e) {
+        console.error("Failed to parse listings from storage event", e);
+      }
     }
+  });
+}
+
+// --- Public API for the store ---
+export const listingsApi = {
+  addListing: (newListing: Listing) => {
+    setListings([...listingsStore, newListing]);
+  },
+  updateListing: (listingId: string, updates: Partial<Listing>) => {
+    setListings(listingsStore.map(l => l.id === listingId ? { ...l, ...updates } : l));
+  },
+  removeListing: (listingId: string) => {
+    setListings(listingsStore.filter(l => l.id !== listingId));
+  },
+  getListingById: (listingId: string): Listing | undefined => {
+    return listingsStore.find(l => l.id === listingId);
+  },
+  getAllListings: (): Listing[] => {
+    return listingsStore;
+  }
 };
 
 
-export function useListings(options: { fetchAll?: boolean } = {}) {
-  const { fetchAll = false } = options;
+// --- React Hook ---
+
+export function useListings(options: { forCurrentUser?: boolean } = {}) {
+  const { forCurrentUser = false } = options;
   const { user } = useAuth();
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
+  // useSyncExternalStore makes React aware of our external store.
+  const allListings = useSyncExternalStore(subscribe, listingsApi.getAllListings, listingsApi.getAllListings);
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
-    // If we aren't fetching all, and there's no user, do nothing.
-    if (!fetchAll && !user) {
-      setListings([]);
-      setIsInitialized(false);
-      return;
-    }
-    
-    // Simulate fetching data
-    setTimeout(() => {
-        const allListings = getMockListings();
-        if (fetchAll) {
-            setListings(allListings);
-        } else if (user) {
-            setListings(allListings.filter(l => l.userId === user.uid));
-        }
-        setIsInitialized(true);
-    }, 500);
+    // The store is now initialized outside the hook, but we can keep this for consumers.
+    setIsInitialized(true);
+  }, []);
 
-  }, [user, toast, fetchAll]);
-
+  const listings = forCurrentUser && user 
+    ? allListings.filter(l => l.userId === user.uid)
+    : allListings;
+  
   const addListing = useCallback(
     async (
       newListingData: Omit<
@@ -129,44 +179,26 @@ export function useListings(options: { fetchAll?: boolean } = {}) {
           createdAt: new Date().toISOString(),
       }
       
-      const allListings = getMockListings();
-      const updatedListings = [...allListings, newListing];
-      setMockListings(updatedListings);
-      // Update state for current user's listings page
-      if (!fetchAll) {
-        setListings(prev => [...prev, newListing]);
-      }
+      listingsApi.addListing(newListing);
 
       toast({
         title: 'Success!',
         description: 'Your food listing has been created.',
       });
     },
-    [user, toast, fetchAll]
+    [user, toast]
   );
 
   const updateListing = useCallback(
     async (listingId: string, updates: Partial<Omit<Listing, 'id' | 'userId' | 'createdAt'>>) => {
-        const allListings = getMockListings();
-        const updatedListings = allListings.map(l => l.id === listingId ? {...l, ...updates} : l);
-        setMockListings(updatedListings);
-        
-        if (fetchAll) {
-          setListings(updatedListings);
-        } else if (user) {
-          setListings(updatedListings.filter(l => l.userId === user.uid));
-        }
+        listingsApi.updateListing(listingId, updates);
     },
-    [fetchAll, user]
+    []
   );
 
   const removeListing = useCallback(
     async (listingId: string) => {
-        const allListings = getMockListings();
-        const updatedListings = allListings.filter(l => l.id !== listingId);
-        setMockListings(updatedListings);
-
-        setListings(prev => prev.filter(l => l.id !== listingId));
+        listingsApi.removeListing(listingId);
         toast({
             title: 'Listing Removed',
             description: 'The listing has been successfully removed.',
@@ -176,8 +208,7 @@ export function useListings(options: { fetchAll?: boolean } = {}) {
   );
   
   const getListingById = useCallback((listingId: string) => {
-    const allListings = getMockListings();
-    return allListings.find(l => l.id === listingId);
+    return listingsApi.getListingById(listingId);
   }, []);
 
   return {
