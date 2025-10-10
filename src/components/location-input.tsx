@@ -50,12 +50,7 @@ export function LocationInput({
   const [autocomplete, setAutocomplete] =
     useState<google.maps.places.Autocomplete | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(value);
-
-  useEffect(() => {
-    setInputValue(value);
-  }, [value]);
-
+  
   useEffect(() => {
     if (inputRef.current && !autocomplete) {
       const newAutocomplete = new window.google.maps.places.Autocomplete(
@@ -83,7 +78,6 @@ export function LocationInput({
           const lng = place.geometry.location.lng();
           const formattedAddress = place.formatted_address ?? '';
           
-          setInputValue(formattedAddress);
           onValueChange?.(formattedAddress);
           setMapCenter({ lat, lng });
           setMarkerPosition({ lat, lng });
@@ -102,7 +96,6 @@ export function LocationInput({
   }, [autocomplete, onValueChange, onLocationSelect, setMapCenter, setMarkerPosition]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
     onValueChange?.(e.target.value);
   }
 
@@ -110,7 +103,7 @@ export function LocationInput({
     <div className="relative">
       <Input
         ref={inputRef}
-        value={inputValue}
+        value={value}
         onChange={handleInputChange}
         placeholder="Enter an address"
         {...props}
@@ -155,7 +148,6 @@ export function LocationInput({
                   geocoder.geocode({ location: markerPosition }, (results, status) => {
                      if (status === 'OK' && results?.[0]) {
                         const formattedAddress = results[0].formatted_address;
-                        setInputValue(formattedAddress);
                         onValueChange?.(formattedAddress);
                         if (onLocationSelect) {
                            onLocationSelect(markerPosition.lat, markerPosition.lng, formattedAddress);
