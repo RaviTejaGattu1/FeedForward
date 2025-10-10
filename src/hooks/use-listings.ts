@@ -110,7 +110,7 @@ export function useListings() {
   );
 
   const updateListing = useCallback(
-    async (listingId: string, updates: Partial<Listing>) => {
+    async (listingId: string, updates: Partial<Omit<Listing, 'id' | 'userId' | 'createdAt'>>) => {
       mockListings = mockListings.map(l => l.id === listingId ? {...l, ...updates} : l);
       setListings(prev => prev.map(l => l.id === listingId ? {...l, ...updates} : l));
     },
@@ -128,6 +128,10 @@ export function useListings() {
     },
     [toast]
   );
+  
+  const getListingById = useCallback((listingId: string) => {
+    return mockListings.find(l => l.id === listingId);
+  }, []);
 
   return {
     listings,
@@ -135,7 +139,6 @@ export function useListings() {
     updateListing,
     removeListing,
     isInitialized,
+    getListingById,
   };
 }
-
-    

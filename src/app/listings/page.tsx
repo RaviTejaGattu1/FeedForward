@@ -96,6 +96,10 @@ export default function MyListingsPage() {
     removeListing(listingId);
   }
 
+  const handleEdit = (listingId: string) => {
+    router.push(`/provide?edit=${listingId}`);
+  };
+
   if (loading) {
     return (
        <div className="flex min-h-screen w-full flex-col">
@@ -267,7 +271,7 @@ export default function MyListingsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(listing.id)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem className="text-red-500" onClick={() => removeListing(listing.id)}>Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

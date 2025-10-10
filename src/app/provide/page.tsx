@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
@@ -41,6 +41,12 @@ const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
 export default function ProvidePage() {
   const { user, loading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit');
+  
+  const { addListing, updateListing, getListingById } = useListings();
+
   const [foodName, setFoodName] = useState('');
   const [foodType, setFoodType] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -54,14 +60,33 @@ export default function ProvidePage() {
   const [recipeSuggestion, setRecipeSuggestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
-  const { addListing } = useListings();
 
   const [isClient, setIsClient] = useState(false);
+  
+  const isEditMode = !!editId;
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (isEditMode) {
+        const listing = getListingById(editId);
+        if (listing) {
+            setFoodName(listing.foodName);
+            setFoodType(listing.foodType);
+            setQuantity(String(listing.quantity));
+            setAddress(listing.address);
+            setWeight(listing.weight || '');
+            setVolume(listing.volume || '');
+            setImagePreview(listing.imageUrl || null);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Listing not found',
+                description: 'The listing you are trying to edit does not exist.',
+            })
+            router.push('/listings');
+        }
+    }
+  }, [editId, getListingById, isEditMode, router, toast]);
 
   const { isLoaded } = useLoadScript(
     googleMapsApiKey
@@ -75,7 +100,7 @@ export default function ProvidePage() {
   const isFormFilled = foodName && foodType && quantity && address;
 
   useEffect(() => {
-    if (!foodName) return;
+    if (!foodName || isEditMode) return;
     const handler = setTimeout(() => {
       setIsGenerating(true);
       setRecipeSuggestion('');
@@ -102,12 +127,12 @@ export default function ProvidePage() {
     return () => {
       clearTimeout(handler);
     };
-  }, [foodName, toast]);
+  }, [foodName, toast, isEditMode]);
 
-  const handleCreateListing = async () => {
+  const handleSubmit = async () => {
     if (!isFormFilled) return;
 
-    await addListing({
+    const listingData = {
         foodName,
         foodType,
         quantity: parseInt(quantity, 10),
@@ -115,7 +140,17 @@ export default function ProvidePage() {
         weight,
         volume,
         imageUrl: imagePreview || undefined,
-    });
+    };
+
+    if (isEditMode) {
+        await updateListing(editId, listingData);
+        toast({
+            title: 'Listing Updated',
+            description: 'Your food listing has been successfully updated.',
+        });
+    } else {
+        await addListing(listingData);
+    }
     router.push('/listings');
   };
   
@@ -130,7 +165,7 @@ export default function ProvidePage() {
     }
   };
 
-  const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion || isGenerating);
+  const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion || isGenerating || isEditMode);
 
   if (loading) {
      return (
@@ -167,10 +202,13 @@ export default function ProvidePage() {
         <Card className="w-full max-w-2xl">
           <CardHeader>
             <CardTitle className="text-3xl font-bold tracking-tighter">
-              Create a Food Listing
+              {isEditMode ? 'Edit Food Listing' : 'Create a Food Listing'}
             </CardTitle>
             <CardDescription>
-              Fill in the details of the surplus food you want to provide.
+              {isEditMode 
+                ? 'Update the details of your food listing.'
+                : 'Fill in the details of the surplus food you want to provide.'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
@@ -346,10 +384,10 @@ export default function ProvidePage() {
                   isCreateButtonActive,
               })}
               disabled={!isCreateButtonActive}
-              onClick={handleCreateListing}
+              onClick={handleSubmit}
               size="lg"
             >
-              Create Food Listing
+              {isEditMode ? 'Save Changes' : 'Create Food Listing'}
             </Button>
           </CardContent>
         </Card>
@@ -358,5 +396,3 @@ export default function ProvidePage() {
     </div>
   );
 }
-
-    
