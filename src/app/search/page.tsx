@@ -71,9 +71,9 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [location, setLocation] = useState('');
-  const [range, setRange] = useState('5');
+  const [range, setRange] = useState('10');
   const [rangeUnit, setRangeUnit] = useState('miles');
-  const { listings, isInitialized } = useListings(); // Fetches all listings by default
+  const { listings: allListings, isInitialized } = useListings();
   const [filteredListings, setFilteredListings] = useState<ListingWithDistance[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,11 +87,10 @@ export default function SearchPage() {
   );
 
   useEffect(() => {
-    // Initially show all active listings
     if (isInitialized) {
-        setFilteredListings(listings.filter(l => l.status === 'active'));
+        setFilteredListings(allListings.filter(l => l.status === 'active'));
     }
-  }, [listings, isInitialized])
+  }, [allListings, isInitialized])
 
   const handleSearch = async () => {
     setIsSearching(true);
@@ -100,8 +99,7 @@ export default function SearchPage() {
     setFilteredListings([]);
 
     if (!location) {
-        // If no location, show all active listings
-        setFilteredListings(listings.filter(l => l.status === 'active'));
+        setFilteredListings(allListings.filter(l => l.status === 'active'));
         setIsSearching(false);
         return;
     }
@@ -113,28 +111,29 @@ export default function SearchPage() {
              return;
         }
         
-        const activeListings = listings.filter(l => l.status === 'active');
+        const activeListings = allListings.filter(l => l.status === 'active');
         
-        const listingsWithDistance = await Promise.all(
-            activeListings.map(async (listing) => {
-                let listingCoords = 
-                    listing.latitude && listing.longitude 
-                    ? { lat: listing.latitude, lng: listing.longitude } 
-                    : await getCoordsFromAddress(listing.address);
-                
-                if (!listingCoords) {
-                    return { ...listing, distance: undefined };
-                }
+        const listingsWithDistance: ListingWithDistance[] = [];
 
-                const distanceInMeters = getDistance(
-                    { latitude: userCoords.lat, longitude: userCoords.lng },
-                    { latitude: listingCoords.lat, longitude: listingCoords.lng }
-                );
+        for (const listing of activeListings) {
+          let listingCoords = 
+              listing.latitude && listing.longitude 
+              ? { lat: listing.latitude, lng: listing.longitude } 
+              : await getCoordsFromAddress(listing.address);
+          
+          if (listingCoords) {
+            const distanceInMeters = getDistance(
+                { latitude: userCoords.lat, longitude: userCoords.lng },
+                { latitude: listingCoords.lat, longitude: listingCoords.lng }
+            );
 
-                const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
-                return { ...listing, distance };
-            })
-        );
+            const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
+            listingsWithDistance.push({ ...listing, distance });
+          } else {
+            // Add listing without distance if coordinates can't be found, it won't be filtered by range
+            listingsWithDistance.push({ ...listing, distance: undefined });
+          }
+        }
         
         const rangeInSelectedUnit = parseInt(range, 10);
         
@@ -315,5 +314,3 @@ export default function SearchPage() {
     </div>
   );
 }
-
-    
