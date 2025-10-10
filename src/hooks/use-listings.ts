@@ -33,7 +33,12 @@ const getMockListings = (): Listing[] => {
     }
     const storedListings = localStorage.getItem('mockListings');
     if (storedListings) {
-        return JSON.parse(storedListings);
+        try {
+            return JSON.parse(storedListings);
+        } catch (e) {
+            console.error("Failed to parse listings from localStorage", e);
+            return [];
+        }
     }
     // Initial default data if localStorage is empty
     const initialListings: Listing[] = [
@@ -71,14 +76,16 @@ const setMockListings = (listings: Listing[]) => {
 };
 
 
-export function useListings() {
+export function useListings(options: { fetchAll?: boolean } = {}) {
+  const { fetchAll = false } = options;
   const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!user) {
+    // If we aren't fetching all, and there's no user, do nothing.
+    if (!fetchAll && !user) {
       setListings([]);
       setIsInitialized(false);
       return;
@@ -87,11 +94,15 @@ export function useListings() {
     // Simulate fetching data
     setTimeout(() => {
         const allListings = getMockListings();
-        setListings(allListings.filter(l => l.userId === user.uid));
+        if (fetchAll) {
+            setListings(allListings);
+        } else if (user) {
+            setListings(allListings.filter(l => l.userId === user.uid));
+        }
         setIsInitialized(true);
     }, 500);
 
-  }, [user, toast]);
+  }, [user, toast, fetchAll]);
 
   const addListing = useCallback(
     async (
@@ -121,14 +132,17 @@ export function useListings() {
       const allListings = getMockListings();
       const updatedListings = [...allListings, newListing];
       setMockListings(updatedListings);
-      setListings(prev => [...prev, newListing]);
+      // Update state for current user's listings page
+      if (!fetchAll) {
+        setListings(prev => [...prev, newListing]);
+      }
 
       toast({
         title: 'Success!',
         description: 'Your food listing has been created.',
       });
     },
-    [user, toast]
+    [user, toast, fetchAll]
   );
 
   const updateListing = useCallback(
@@ -136,9 +150,14 @@ export function useListings() {
         const allListings = getMockListings();
         const updatedListings = allListings.map(l => l.id === listingId ? {...l, ...updates} : l);
         setMockListings(updatedListings);
-        setListings(prev => prev.map(l => l.id === listingId ? {...l, ...updates} : l));
+        
+        if (fetchAll) {
+          setListings(updatedListings);
+        } else if (user) {
+          setListings(updatedListings.filter(l => l.userId === user.uid));
+        }
     },
-    []
+    [fetchAll, user]
   );
 
   const removeListing = useCallback(

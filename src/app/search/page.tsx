@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AppHeader } from '@/components/layout/app-header';
@@ -16,11 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  CookingPot,
-  MapPin,
-  Search,
-} from 'lucide-react';
+import { CookingPot, MapPin, Search } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -29,9 +25,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
+import { type Listing, useListings } from '@/hooks/use-listings';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -43,56 +39,11 @@ const MAP_LIBRARIES = ['places'] as (
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
-const mockListings = [
-  {
-    id: '1',
-    foodName: 'Sourdough Bread',
-    quantity: 10,
-    address: '123 Main St, Anytown USA',
-    distance: 2.5,
-    imageUrl: PlaceHolderImages.find((img) => img.id === 'bread')
-      ?.imageUrl as string,
-    imageHint: PlaceHolderImages.find((img) => img.id === 'bread')
-      ?.imageHint as string,
-  },
-  {
-    id: '2',
-    foodName: 'Organic Apples',
-    quantity: 50,
-    address: '456 Oak Ave, Anytown USA',
-    distance: 3.1,
-    imageUrl: PlaceHolderImages.find((img) => img.id === 'apples')
-      ?.imageUrl as string,
-    imageHint: PlaceHolderImages.find((img) => img.id === 'apples')
-      ?.imageHint as string,
-  },
-  {
-    id: '3',
-    foodName: 'Canned Beans',
-    quantity: 24,
-    address: '789 Pine Ln, Anytown USA',
-    distance: 4.2,
-    imageUrl: PlaceHolderImages.find((img) => img.id === 'beans')
-      ?.imageUrl as string,
-    imageHint: PlaceHolderImages.find((img) => img.id === 'beans')
-      ?.imageHint as string,
-  },
-    {
-    id: '4',
-    foodName: 'Fresh Milk',
-    quantity: 12,
-    address: '101 Maple Dr, Anytown USA',
-    distance: 5.0,
-    imageUrl: PlaceHolderImages.find((img) => img.id === 'milk')
-      ?.imageUrl as string,
-    imageHint: PlaceHolderImages.find((img) => img.id === 'milk')
-      ?.imageHint as string,
-  },
-];
-
 export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [location, setLocation] = useState('');
+  const { listings, isInitialized } = useListings({ fetchAll: true });
+  const [filteredListings, setFilteredListings] = useState<Listing[]>([]);
 
   const { isLoaded } = useLoadScript(
     googleMapsApiKey
@@ -103,9 +54,18 @@ export default function SearchPage() {
       : { skip: true }
   );
 
+  useEffect(() => {
+    // Initially show all active listings
+    if (isInitialized) {
+        setFilteredListings(listings.filter(l => l.status === 'active'));
+    }
+  }, [listings, isInitialized])
+
   const handleSearch = () => {
     // In a real app, you'd fetch listings based on the search criteria.
-    // For now, we'll just simulate a search.
+    // For now, we'll just filter the existing list.
+    // This is where you would add more complex filtering logic based on location, range, etc.
+    setFilteredListings(listings.filter(l => l.status === 'active'));
     setHasSearched(true);
   };
 
@@ -130,7 +90,9 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      {typeof window !== 'undefined' && isLoaded && googleMapsApiKey ? (
+                      {typeof window !== 'undefined' &&
+                      isLoaded &&
+                      googleMapsApiKey ? (
                         <LocationInput
                           isGeolocateDefault={true}
                           value={location}
@@ -140,7 +102,7 @@ export default function SearchPage() {
                           }}
                         />
                       ) : (
-                         <Input
+                        <Input
                           id="location"
                           placeholder="Enter your city or address"
                           value={location}
@@ -165,13 +127,21 @@ export default function SearchPage() {
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
-                     <div className="grid gap-2">
-                      <Label htmlFor="food-preferences">Food Preferences</Label>
-                      <Input id="food-preferences" placeholder="e.g., Vegan, Gluten-Free" />
+                    <div className="grid gap-2">
+                      <Label htmlFor="food-preferences">
+                        Food Preferences
+                      </Label>
+                      <Input
+                        id="food-preferences"
+                        placeholder="e.g., Vegan, Gluten-Free"
+                      />
                     </div>
-                     <div className="grid gap-2">
+                    <div className="grid gap-2">
                       <Label htmlFor="similar-foods">Foods Similar To</Label>
-                      <Input id="similar-foods" placeholder="e.g., Rice, Pasta, Bread" />
+                      <Input
+                        id="similar-foods"
+                        placeholder="e.g., Rice, Pasta, Bread"
+                      />
                     </div>
                   </div>
                   <Button size="lg" className="w-full" onClick={handleSearch}>
@@ -183,50 +153,65 @@ export default function SearchPage() {
           </section>
 
           {/* Results Section */}
-          {hasSearched && (
+          {(hasSearched || isInitialized) && (
             <section>
               <h2 className="text-2xl font-semibold tracking-tight mb-6">
                 Available Listings
               </h2>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {mockListings.map((listing) => (
-                  <Card key={listing.id} className="flex flex-col overflow-hidden">
-                    <div className="relative w-full h-48">
-                      <Image
-                        src={listing.imageUrl}
-                        alt={listing.foodName}
-                        fill
-                        className="object-cover"
-                        data-ai-hint={listing.imageHint}
-                      />
-                    </div>
-                    <CardHeader>
-                      <CardTitle>{listing.foodName}</CardTitle>
-                      <CardDescription>{listing.address}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-2 text-sm flex-1">
-                       <div className="flex items-center gap-2">
-                         <CookingPot className="h-4 w-4 text-muted-foreground" />
-                        <span>Quantity: {listing.quantity}</span>
+               {filteredListings.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {filteredListings.map((listing) => (
+                    <Card
+                      key={listing.id}
+                      className="flex flex-col overflow-hidden"
+                    >
+                      <div className="relative w-full h-48">
+                        <Image
+                          src={listing.imageUrl || PlaceHolderImages.find(img => img.id === 'beans')?.imageUrl || 'https://placehold.co/600x400'}
+                          alt={listing.foodName}
+                          fill
+                          className="object-cover"
+                          data-ai-hint="food item"
+                        />
                       </div>
-                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>{listing.distance} miles away</span>
-                      </div>
+                      <CardHeader>
+                        <CardTitle>{listing.foodName}</CardTitle>
+                        <CardDescription>{listing.address}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid gap-2 text-sm flex-1">
+                        <div className="flex items-center gap-2">
+                          <CookingPot className="h-4 w-4 text-muted-foreground" />
+                          <span>Quantity: {listing.quantity}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          {/* In a real app, distance would be calculated */}
+                          <span>Distance unavailable</span>
+                        </div>
+                      </CardContent>
+                      <CardContent className="flex gap-2">
+                        <Button className="flex-1" asChild>
+                          <Link href={`/listings/${listing.id}`}>Details</Link>
+                        </Button>
+                        <Button variant="secondary" className="flex-1">
+                          Reserve
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+               ) : (
+                <Card>
+                    <CardContent className="py-12 text-center">
+                        <p className="text-muted-foreground">No active listings found matching your criteria.</p>
                     </CardContent>
-                     <CardContent className="flex gap-2">
-                      <Button className="flex-1" asChild>
-                        <Link href={`/listings/${listing.id}`}>Details</Link>
-                      </Button>
-                      <Button variant="secondary" className="flex-1">Reserve</Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                </Card>
+               )}
             </section>
           )}
         </div>
-      </main>      <AppFooter />
+      </main>
+      <AppFooter />
     </div>
   );
 }
