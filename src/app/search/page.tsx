@@ -180,7 +180,6 @@ export default function SearchPage() {
                       isLoaded &&
                       googleMapsApiKey ? (
                         <LocationInput
-                          isGeolocateDefault={true}
                           value={location}
                           onValueChange={setLocation}
                           onLocationSelect={(lat, lng, formattedAddress) => {
