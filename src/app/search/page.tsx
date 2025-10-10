@@ -31,6 +31,7 @@ import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
 import { type Listing, useListings } from '@/hooks/use-listings';
 import { getDistance } from 'geolib';
+import { getCoordsFromAddress } from '@/lib/geocoding';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -41,28 +42,6 @@ const MAP_LIBRARIES = ['places'] as (
 )[];
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
-
-const getCoordsFromAddress = (address: string): Promise<{ lat: number; lng: number } | null> => {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder) {
-      console.error("Google Maps Geocoder not available.");
-      return resolve(null);
-    }
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ address }, (results, status) => {
-      if (status === 'OK' && results?.[0]) {
-        const location = results[0].geometry.location;
-        resolve({ lat: location.lat(), lng: location.lng() });
-      } else {
-        // Don't log ZERO_RESULTS as an error, it's a valid search outcome.
-        if (status !== 'ZERO_RESULTS') {
-            console.error('Geocode was not successful for the following reason: ' + status);
-        }
-        resolve(null);
-      }
-    });
-  });
-};
 
 type ListingWithDistance = Listing & { distance?: number };
 
@@ -113,27 +92,17 @@ export default function SearchPage() {
         
         const activeListings = allListings.filter(l => l.status === 'active');
         
-        const listingsWithDistance: ListingWithDistance[] = [];
-
-        for (const listing of activeListings) {
-          let listingCoords = 
-              listing.latitude && listing.longitude 
-              ? { lat: listing.latitude, lng: listing.longitude } 
-              : await getCoordsFromAddress(listing.address);
-          
-          if (listingCoords) {
+        const listingsWithDistance: ListingWithDistance[] = activeListings
+          .filter(listing => listing.latitude && listing.longitude) // Ensure listings have coordinates
+          .map(listing => {
             const distanceInMeters = getDistance(
                 { latitude: userCoords.lat, longitude: userCoords.lng },
-                { latitude: listingCoords.lat, longitude: listingCoords.lng }
+                { latitude: listing.latitude!, longitude: listing.longitude! }
             );
 
             const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
-            listingsWithDistance.push({ ...listing, distance });
-          } else {
-            // Add listing without distance if coordinates can't be found, it won't be filtered by range
-            listingsWithDistance.push({ ...listing, distance: undefined });
-          }
-        }
+            return { ...listing, distance };
+        });
         
         const rangeInSelectedUnit = parseInt(range, 10);
         

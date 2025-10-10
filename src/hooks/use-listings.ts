@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useAuth } from './use-auth';
+import { getCoordsFromAddress } from '@/lib/geocoding';
+
 
 export type ListingStatus =
   | 'active'
@@ -188,8 +190,23 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
         return;
       }
 
+      // If coordinates are missing, try to geocode the address before saving.
+      let coords = {
+          latitude: newListingData.latitude,
+          longitude: newListingData.longitude
+      };
+
+      if ((!coords.latitude || !coords.longitude) && newListingData.address) {
+          const geocodedCoords = await getCoordsFromAddress(newListingData.address);
+          if (geocodedCoords) {
+              coords.latitude = geocodedCoords.lat;
+              coords.longitude = geocodedCoords.lng;
+          }
+      }
+
       const newListing: Listing = {
           ...newListingData,
+          ...coords,
           id: `listing-${Date.now()}`,
           userId: user.uid,
           status: 'active',
