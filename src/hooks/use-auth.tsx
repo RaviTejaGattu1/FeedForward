@@ -35,36 +35,62 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => ({} as User),
 });
 
-// In-memory store for users for this session
-const mockUsers: { [email: string]: User } = {
-    'admin@feedforward.com': {
+const getMockUsers = () => {
+  if (typeof window === 'undefined') {
+    return {
+      'admin@feedforward.com': {
         uid: 'admin-user-id',
         email: 'admin@feedforward.com',
         displayName: 'Admin User',
+      },
+    };
+  }
+  const storedUsers = localStorage.getItem('mockUsers');
+  return storedUsers
+    ? JSON.parse(storedUsers)
+    : {
+        'admin@feedforward.com': {
+          uid: 'admin-user-id',
+          email: 'admin@feedforward.com',
+          displayName: 'Admin User',
+        },
+      };
+};
+
+const setMockUsers = (users: { [email: string]: User }) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('mockUsers', JSON.stringify(users));
     }
 };
 
-let mockUserSession: User | null = null;
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(mockUserSession);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate checking for a session
-    setTimeout(() => {
-      setUser(mockUserSession);
-      setLoading(false);
-    }, 500);
+    // Check for a session in localStorage
+    try {
+      const storedUser = localStorage.getItem('mockUserSession');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (e) {
+      console.error("Failed to parse user session from localStorage", e);
+      localStorage.removeItem('mockUserSession');
+    } finally {
+        setLoading(false);
+    }
   }, []);
 
   const signIn = useCallback(async (email: string) => {
     setLoading(true);
+    const mockUsers = getMockUsers();
     return new Promise<User>((resolve, reject) => {
       setTimeout(() => {
         if (mockUsers[email]) {
           const loggedInUser = mockUsers[email];
-          mockUserSession = loggedInUser;
+          localStorage.setItem('mockUserSession', JSON.stringify(loggedInUser));
           setUser(loggedInUser);
           setLoading(false);
           resolve(loggedInUser);
@@ -80,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        mockUserSession = null;
+        localStorage.removeItem('mockUserSession');
         setUser(null);
         setLoading(false);
         resolve();
@@ -92,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
      return new Promise<User>((resolve, reject) => {
       setTimeout(() => {
+          const mockUsers = getMockUsers();
           if (mockUsers[email]) {
             setLoading(false);
             return reject(new Error('Email already in use'));
@@ -102,7 +129,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email: email,
           };
           mockUsers[email] = newUser;
-          mockUserSession = newUser;
+          setMockUsers(mockUsers);
+          
+          localStorage.setItem('mockUserSession', JSON.stringify(newUser));
           setUser(newUser);
           setLoading(false);
           resolve(newUser);
