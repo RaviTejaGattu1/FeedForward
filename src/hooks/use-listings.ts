@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from './use-auth';
 
 export type ListingStatus =
@@ -57,29 +56,47 @@ const getInitialListings = (): Listing[] => {
             foodName: 'Sourdough Bread',
             foodType: 'Baked Goods',
             quantity: 5,
-            address: '123 Main St, Anytown',
+            address: '123 Main St, Anytown, USA',
             latitude: 40.7128,
             longitude: -74.0060,
             status: 'active',
             claimedBy: null,
             createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
             userId: 'admin-user-id',
+            imageUrl: 'https://images.unsplash.com/photo-1554933054-0b679a7982ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxicmVhZCUyMGxvYWZ8ZW58MHx8fHwxNzU4OTM0NjU0fDA&ixlib=rb-4.1.0&q=80&w=1080',
         },
         {
             id: 'mock-2',
             foodName: 'Fresh Apples',
             foodType: 'Produce',
             quantity: 20,
-            address: '456 Oak Ave, Anytown',
+            address: '456 Oak Ave, Anytown, USA',
             latitude: 40.7228,
             longitude: -74.0160,
             status: 'awaiting approval',
             claimedBy: 'Community Shelter',
             createdAt: new Date(Date.now() - 3600 * 2000).toISOString(),
             userId: 'admin-user-id',
-        }
+            imageUrl: 'https://images.unsplash.com/photo-1651774031696-1531123f9831?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhcHBsZXMlMjBiYXNrZXR8ZW58MHx8fHwxNzU4OTUwNzkxfDA&ixlib=rb-4.1.0&q=80&w=1080',
+        },
+        {
+            id: 'mock-3',
+            foodName: 'Canned Beans',
+            foodType: 'Pantry',
+            quantity: 24,
+            address: '201 S 4th St, San Jose, CA 95112, USA',
+            latitude: 37.3352,
+            longitude: -121.8811,
+            status: 'active',
+            claimedBy: null,
+            createdAt: new Date(Date.now() - 3600 * 4000).toISOString(),
+            userId: 'another-user-id',
+            imageUrl: 'https://images.unsplash.com/photo-1626436273093-35351f1a7d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uZWQlMjBiZWFuc3xlbnwwfHx8fDE3NTkwMTc1NDd8MA&ixlib=rb-4.1.0&q=80&w=1080'
+        },
     ];
-    localStorage.setItem('mockListings', JSON.stringify(initialListings));
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('mockListings', JSON.stringify(initialListings));
+    }
     return initialListings;
 };
 
@@ -212,5 +229,3 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     getListingById,
   };
 }
-
-    

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ const getCoordsFromAddress = (address: string): Promise<{ lat: number; lng: numb
 type ListingWithDistance = Listing & { distance?: number };
 
 export default function SearchPage() {
+  const router = useRouter();
   const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [location, setLocation] = useState('');
@@ -169,9 +171,7 @@ export default function SearchPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="location">My Location</Label>
-                      {typeof window !== 'undefined' &&
-                      isLoaded &&
-                      googleMapsApiKey ? (
+                      {isLoaded && googleMapsApiKey ? (
                         <LocationInput
                           value={location}
                           onValueChange={setLocation}
