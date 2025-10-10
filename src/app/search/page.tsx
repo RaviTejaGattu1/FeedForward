@@ -92,6 +92,7 @@ export default function SearchPage() {
     setIsSearching(true);
     setHasSearched(true);
     setError(null);
+    setFilteredListings([]);
 
     if (!location) {
         // If no location, show all active listings
@@ -103,7 +104,6 @@ export default function SearchPage() {
         const userCoords = await getCoordsFromAddress(location);
         if (!userCoords) {
              setError("Could not find the location specified. Please try a different address.");
-             setFilteredListings([]);
              setIsSearching(false);
              return;
         }
@@ -112,17 +112,11 @@ export default function SearchPage() {
         
         const listingsWithDistance = await Promise.all(
             activeListings.map(async (listing) => {
-                // Do not geocode if coordinates are already available
-                if (listing.latitude && listing.longitude) {
-                     const distanceInMeters = getDistance(
-                        { latitude: userCoords.lat, longitude: userCoords.lng },
-                        { latitude: listing.latitude, longitude: listing.longitude }
-                    );
-                    const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
-                    return { ...listing, distance };
-                }
-
-                const listingCoords = await getCoordsFromAddress(listing.address);
+                let listingCoords = 
+                    listing.latitude && listing.longitude 
+                    ? { lat: listing.latitude, lng: listing.longitude } 
+                    : await getCoordsFromAddress(listing.address);
+                
                 if (!listingCoords) {
                     return { ...listing, distance: undefined };
                 }
@@ -133,23 +127,22 @@ export default function SearchPage() {
                 );
 
                 const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
-                return { ...listing, distance: distance };
+                return { ...listing, distance };
             })
         );
         
         const rangeInSelectedUnit = parseInt(range, 10);
         
-        const nearbyListings = listingsWithDistance.filter(listing => {
-            if (listing.distance === undefined) return false;
-            return listing.distance <= rangeInSelectedUnit;
-        }).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+        const nearbyListings = listingsWithDistance
+          .filter(listing => listing.distance !== undefined && listing.distance <= rangeInSelectedUnit)
+          .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
         setFilteredListings(nearbyListings);
 
     } catch (e) {
         console.error("Error during search:", e);
         setError("An unexpected error occurred during the search.");
-        setFilteredListings(listings.filter(l => l.status === 'active'));
+        setFilteredListings([]);
     } finally {
         setIsSearching(false);
     }
@@ -250,7 +243,7 @@ export default function SearchPage() {
           {(hasSearched || isInitialized) && (
             <section>
               <h2 className="text-2xl font-semibold tracking-tight mb-6">
-                Available Listings
+                {hasSearched ? "Search Results" : "All Available Listings"}
               </h2>
                {filteredListings.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -302,10 +295,10 @@ export default function SearchPage() {
                     <CardContent className="py-12 text-center">
                         <p className="text-muted-foreground">
                             {isSearching 
-                                ? "Searching..." 
+                                ? "Searching for listings..." 
                                 : hasSearched 
-                                    ? "No active listings found matching your criteria. Try expanding your search range." 
-                                    : "No active listings found."
+                                    ? "No active listings found matching your criteria. Try expanding your search range or changing your location." 
+                                    : "There are currently no active listings."
                             }
                         </p>
                     </CardContent>
@@ -319,5 +312,3 @@ export default function SearchPage() {
     </div>
   );
 }
-
-    
