@@ -67,7 +67,7 @@ export default function ProvidePage() {
 
   useEffect(() => {
     setIsClient(true);
-    if (isEditMode) {
+    if (isEditMode && editId) {
         const listing = getListingById(editId);
         if (listing) {
             setFoodName(listing.foodName);
@@ -130,7 +130,7 @@ export default function ProvidePage() {
   }, [foodName, toast, isEditMode]);
 
   const handleSubmit = async () => {
-    if (!isFormFilled) return;
+    if (!isFormFilled || !user) return;
 
     const listingData = {
         foodName,
@@ -142,7 +142,7 @@ export default function ProvidePage() {
         imageUrl: imagePreview || undefined,
     };
 
-    if (isEditMode) {
+    if (isEditMode && editId) {
         await updateListing(editId, listingData);
         toast({
             title: 'Listing Updated',

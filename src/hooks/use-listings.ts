@@ -23,35 +23,53 @@ export type Listing = {
   imageUrl?: string;
   status: ListingStatus;
   claimedBy: string | null;
-  createdAt: Date;
+  createdAt: string; // Store as ISO string for localStorage
   userId: string;
 };
 
-// In-memory store for listings
-let mockListings: Listing[] = [
-    {
-        id: 'mock-1',
-        foodName: 'Sourdough Bread',
-        foodType: 'Baked Goods',
-        quantity: 5,
-        address: '123 Main St, Anytown',
-        status: 'active',
-        claimedBy: null,
-        createdAt: new Date(Date.now() - 3600 * 1000), // 1 hour ago
-        userId: 'admin-user-id',
-    },
-    {
-        id: 'mock-2',
-        foodName: 'Fresh Apples',
-        foodType: 'Produce',
-        quantity: 20,
-        address: '456 Oak Ave, Anytown',
-        status: 'awaiting approval',
-        claimedBy: 'Community Shelter',
-        createdAt: new Date(Date.now() - 3600 * 2000), // 2 hours ago
-        userId: 'admin-user-id',
+const getMockListings = (): Listing[] => {
+    if (typeof window === 'undefined') {
+        return [];
     }
-];
+    const storedListings = localStorage.getItem('mockListings');
+    if (storedListings) {
+        return JSON.parse(storedListings);
+    }
+    // Initial default data if localStorage is empty
+    const initialListings: Listing[] = [
+        {
+            id: 'mock-1',
+            foodName: 'Sourdough Bread',
+            foodType: 'Baked Goods',
+            quantity: 5,
+            address: '123 Main St, Anytown',
+            status: 'active',
+            claimedBy: null,
+            createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
+            userId: 'admin-user-id',
+        },
+        {
+            id: 'mock-2',
+            foodName: 'Fresh Apples',
+            foodType: 'Produce',
+            quantity: 20,
+            address: '456 Oak Ave, Anytown',
+            status: 'awaiting approval',
+            claimedBy: 'Community Shelter',
+            createdAt: new Date(Date.now() - 3600 * 2000).toISOString(),
+            userId: 'admin-user-id',
+        }
+    ];
+    localStorage.setItem('mockListings', JSON.stringify(initialListings));
+    return initialListings;
+};
+
+const setMockListings = (listings: Listing[]) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('mockListings', JSON.stringify(listings));
+    }
+};
+
 
 export function useListings() {
   const { user } = useAuth();
@@ -68,7 +86,8 @@ export function useListings() {
     
     // Simulate fetching data
     setTimeout(() => {
-        setListings(mockListings.filter(l => l.userId === user.uid));
+        const allListings = getMockListings();
+        setListings(allListings.filter(l => l.userId === user.uid));
         setIsInitialized(true);
     }, 500);
 
@@ -96,9 +115,12 @@ export function useListings() {
           userId: user.uid,
           status: 'active',
           claimedBy: null,
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
       }
-      mockListings.push(newListing);
+      
+      const allListings = getMockListings();
+      const updatedListings = [...allListings, newListing];
+      setMockListings(updatedListings);
       setListings(prev => [...prev, newListing]);
 
       toast({
@@ -111,15 +133,20 @@ export function useListings() {
 
   const updateListing = useCallback(
     async (listingId: string, updates: Partial<Omit<Listing, 'id' | 'userId' | 'createdAt'>>) => {
-      mockListings = mockListings.map(l => l.id === listingId ? {...l, ...updates} : l);
-      setListings(prev => prev.map(l => l.id === listingId ? {...l, ...updates} : l));
+        const allListings = getMockListings();
+        const updatedListings = allListings.map(l => l.id === listingId ? {...l, ...updates} : l);
+        setMockListings(updatedListings);
+        setListings(prev => prev.map(l => l.id === listingId ? {...l, ...updates} : l));
     },
     []
   );
 
   const removeListing = useCallback(
     async (listingId: string) => {
-        mockListings = mockListings.filter(l => l.id !== listingId);
+        const allListings = getMockListings();
+        const updatedListings = allListings.filter(l => l.id !== listingId);
+        setMockListings(updatedListings);
+
         setListings(prev => prev.filter(l => l.id !== listingId));
         toast({
             title: 'Listing Removed',
@@ -130,7 +157,8 @@ export function useListings() {
   );
   
   const getListingById = useCallback((listingId: string) => {
-    return mockListings.find(l => l.id === listingId);
+    const allListings = getMockListings();
+    return allListings.find(l => l.id === listingId);
   }, []);
 
   return {
