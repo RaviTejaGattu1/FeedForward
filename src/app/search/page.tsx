@@ -40,10 +40,11 @@ const MAP_LIBRARIES = ['places'] as (
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
-const getCoordsFromAddress = (address: string): Promise<{ lat: number; lng: number }> => {
-  return new Promise((resolve, reject) => {
-    if (!google.maps.Geocoder) {
-        return reject(new Error("Geocoder not available"));
+const getCoordsFromAddress = (address: string): Promise<{ lat: number; lng: number } | null> => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !window.google || !window.google.maps || !window.google.maps.Geocoder) {
+      console.error("Google Maps Geocoder not available.");
+      return resolve(null);
     }
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ address }, (results, status) => {
@@ -51,19 +52,23 @@ const getCoordsFromAddress = (address: string): Promise<{ lat: number; lng: numb
         const location = results[0].geometry.location;
         resolve({ lat: location.lat(), lng: location.lng() });
       } else {
-        reject(new Error('Geocode was not successful for the following reason: ' + status));
+        console.error('Geocode was not successful for the following reason: ' + status);
+        resolve(null);
       }
     });
   });
 };
 
+type ListingWithDistance = Listing & { distance?: number };
+
 export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [location, setLocation] = useState('');
   const [range, setRange] = useState('5');
   const [rangeUnit, setRangeUnit] = useState('miles');
   const { listings, isInitialized } = useListings({ fetchAll: true });
-  const [filteredListings, setFilteredListings] = useState<Listing[]>([]);
+  const [filteredListings, setFilteredListings] = useState<ListingWithDistance[]>([]);
 
   const { isLoaded } = useLoadScript(
     googleMapsApiKey
@@ -82,41 +87,48 @@ export default function SearchPage() {
   }, [listings, isInitialized])
 
   const handleSearch = async () => {
+    setIsSearching(true);
     setHasSearched(true);
+
     if (!location) {
         // If no location, show all active listings
         setFilteredListings(listings.filter(l => l.status === 'active'));
+        setIsSearching(false);
         return;
     }
     try {
         const userCoords = await getCoordsFromAddress(location);
+        if (!userCoords) {
+             setFilteredListings([]);
+             setIsSearching(false);
+             return;
+        }
         
-        const listingsWithCoords = await Promise.all(
-            listings
-                .filter(l => l.status === 'active')
-                .map(async (listing) => {
-                    try {
-                        const listingCoords = await getCoordsFromAddress(listing.address);
-                        return { ...listing, coords: listingCoords };
-                    } catch (e) {
-                        console.error(`Could not geocode address for listing ${listing.id}: ${listing.address}`);
-                        return { ...listing, coords: null };
-                    }
-                })
+        const activeListings = listings.filter(l => l.status === 'active');
+        
+        const listingsWithDistance = await Promise.all(
+            activeListings.map(async (listing) => {
+                const listingCoords = await getCoordsFromAddress(listing.address);
+                if (!listingCoords) {
+                    return { ...listing, distance: undefined };
+                }
+
+                const distanceInMeters = getDistance(
+                    { latitude: userCoords.lat, longitude: userCoords.lng },
+                    { latitude: listingCoords.lat, longitude: listingCoords.lng }
+                );
+
+                const distance = rangeUnit === 'miles' ? distanceInMeters / 1609.34 : distanceInMeters / 1000;
+                return { ...listing, distance: distance };
+            })
         );
         
-        const rangeInMeters = parseInt(range) * (rangeUnit === 'miles' ? 1609.34 : 1000);
-
-        const nearbyListings = listingsWithCoords.filter(listing => {
-            if (!listing.coords) return false;
-            
-            const distance = getDistance(
-                { latitude: userCoords.lat, longitude: userCoords.lng },
-                { latitude: listing.coords.lat, longitude: listing.coords.lng }
-            );
-
-            return distance <= rangeInMeters;
-        });
+        const rangeInSelectedUnit = parseInt(range, 10);
+        
+        const nearbyListings = listingsWithDistance.filter(listing => {
+            if (listing.distance === undefined) return false;
+            return listing.distance <= rangeInSelectedUnit;
+        }).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
         setFilteredListings(nearbyListings);
 
@@ -124,6 +136,8 @@ export default function SearchPage() {
         console.error("Error during search:", e);
         // Show all active if user location geocoding fails
         setFilteredListings(listings.filter(l => l.status === 'active'));
+    } finally {
+        setIsSearching(false);
     }
   };
 
@@ -202,8 +216,8 @@ export default function SearchPage() {
                       />
                     </div>
                   </div>
-                  <Button size="lg" className="w-full" onClick={handleSearch}>
-                    <Search className="mr-2" /> Search
+                  <Button size="lg" className="w-full" onClick={handleSearch} disabled={isSearching}>
+                    <Search className="mr-2" /> {isSearching ? 'Searching...' : 'Search'}
                   </Button>
                 </div>
               </CardContent>
@@ -243,8 +257,11 @@ export default function SearchPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
-                          {/* In a real app, distance would be calculated */}
-                          <span>Distance unavailable</span>
+                          {listing.distance !== undefined ? (
+                              <span>{listing.distance.toFixed(1)} {rangeUnit} away</span>
+                          ) : (
+                              <span>Distance unavailable</span>
+                          )}
                         </div>
                       </CardContent>
                       <CardContent className="flex gap-2">
