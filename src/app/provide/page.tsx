@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Lightbulb, Upload, LogIn } from 'lucide-react';
+import { Lightbulb, Upload, LogIn, X } from 'lucide-react';
 import { generateRecipeSuggestion } from '@/ai/flows/recipe-suggestion';
 import { useToast } from '@/hooks/use-toast';
 import { Balancer } from 'react-wrap-balancer';
@@ -46,6 +47,8 @@ export default function ProvidePage() {
   const [weight, setWeight] = useState('');
   const [volume, setVolume] = useState('');
   const [address, setAddress] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSuggestionAcknowledged, setIsSuggestionAcknowledged] =
     useState(false);
   const [recipeSuggestion, setRecipeSuggestion] = useState('');
@@ -111,8 +114,20 @@ export default function ProvidePage() {
         address,
         weight,
         volume,
+        imageUrl: imagePreview || undefined,
     });
     router.push('/listings');
+  };
+  
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const isCreateButtonActive = isFormFilled && (isSuggestionAcknowledged || !recipeSuggestion || isGenerating);
@@ -182,15 +197,47 @@ export default function ProvidePage() {
 
             <div className="grid gap-2">
               <Label>Images</Label>
-              <div className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-                <Upload className="h-10 w-10 text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Drag & drop images here, or click to upload
-                </p>
-                <Button variant="outline" size="sm" className="mt-4">
-                  Select Files
-                </Button>
-              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileSelect}
+                accept="image/*"
+              />
+              {imagePreview ? (
+                <div className="relative w-full h-64 rounded-lg overflow-hidden border">
+                    <Image src={imagePreview} alt="Selected food" fill className="object-cover" />
+                    <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        className="absolute top-2 right-2 h-7 w-7"
+                        onClick={() => setImagePreview(null)}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed border-muted-foreground/50 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-10 w-10 text-muted-foreground" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Drag & drop images here, or click to upload
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={(e) => {
+                      e.stopPropagation(); // prevent triggering the parent div's click
+                      fileInputRef.current?.click();
+                    }}
+                  >
+                    Select Files
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
@@ -311,3 +358,5 @@ export default function ProvidePage() {
     </div>
   );
 }
+
+    
