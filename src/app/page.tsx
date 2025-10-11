@@ -6,7 +6,7 @@ import { Flame, Truck, Users, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { StatCard } from '@/components/stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { MotivationalBlurb } from '@/components/motivational-blurb';
+import { Balancer } from 'react-wrap-balancer';
 
 export default async function Home() {
   const stats = {
@@ -34,7 +34,9 @@ export default async function Home() {
               Welcome to FeedForward
             </h1>
             <div className="mx-auto mt-6 max-w-[700px] text-lg text-muted-foreground md:text-xl">
-               <MotivationalBlurb />
+               <Balancer>
+                Join us in the fight against hunger. We connect surplus food from providers to those in need, making a real impact one meal at a time. Every contribution makes a difference.
+               </Balancer>
             </div>
             {apiKeyMissing && (
                 <Alert variant="destructive" className="mt-8 max-w-2xl mx-auto text-left">
