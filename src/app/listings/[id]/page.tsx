@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -112,7 +112,13 @@ export default function ListingDetailPage({
   const [userLocationCoords, setUserLocationCoords] =
     useState<google.maps.LatLngLiteral | null>(null);
   
-  const destination = (listing?.latitude && listing?.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing?.address;
+  const destination = useMemo(() => {
+    if (listing?.latitude && listing?.longitude) {
+      return { lat: listing.latitude, lng: listing.longitude };
+    }
+    return listing?.address;
+  }, [listing?.latitude, listing?.longitude, listing?.address]);
+
 
   const otp = listing ? getOtpForListing(listing.id) : '';
 
