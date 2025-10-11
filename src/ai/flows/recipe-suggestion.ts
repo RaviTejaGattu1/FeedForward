@@ -44,6 +44,18 @@ Phrase the suggestion like this: "Hey, the simplest dish a recipient can make us
 Keep the suggestion concise (around 50 words).
 If the item is not something that can be used in a recipe (e.g., a ready-to-eat meal), just return an encouraging message about their donation.
 `,
+  config: {
+    safetySettings: [
+        {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_ONLY_HIGH',
+        },
+        {
+            category: 'HARM_CATEGORY_HARASSMENT',
+            threshold: 'BLOCK_ONLY_HIGH'
+        }
+    ]
+  }
 });
 
 const recipeSuggestionFlow = ai.defineFlow(
@@ -54,6 +66,9 @@ const recipeSuggestionFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('The model did not return a suggestion. This might be due to safety settings or an internal error.');
+    }
+    return output;
   }
 );

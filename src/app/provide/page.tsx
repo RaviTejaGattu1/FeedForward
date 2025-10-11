@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -118,9 +117,9 @@ export default function ProvidePage() {
           if (!error.message.includes('GEMINI_API_KEY')) {
             toast({
               variant: 'destructive',
-              title: 'Error',
+              title: 'AI Suggestion Error',
               description:
-                'Could not generate a recipe suggestion at this time.',
+                error.message || 'Could not generate a recipe suggestion at this time.',
             });
           }
         })
