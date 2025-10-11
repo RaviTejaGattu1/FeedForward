@@ -129,8 +129,7 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
           claimedBy: null,
           createdAt: new Date().toISOString(),
       }
-      const currentListings = listingsStore.getSnapshot();
-      listingsStore.setState([...currentListings, newListing]);
+      listingsStore.setState([...listingsStore.getSnapshot(), newListing]);
     },
     [user]
   );

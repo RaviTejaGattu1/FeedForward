@@ -28,6 +28,7 @@ const initialServerUsers: { [email: string]: User } = {
   },
 };
 
+// Use the new, reliable store
 const userStore = createLocalStorageStore<{ [email: string]: User }>('mockUsers', initialServerUsers);
 
 
@@ -110,8 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
         };
         
-        const newUsers = { ...currentUsers, [email]: newUser };
-        userStore.setState(newUsers);
+        userStore.setState({ ...currentUsers, [email]: newUser });
 
         sessionStorage.setItem('mockUserSessionEmail', email);
         setCurrentUserEmail(email);
