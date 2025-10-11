@@ -20,7 +20,8 @@ export type User = {
 };
 
 // --- Store Implementation ---
-// This is the single source of truth for our user data, synchronized with localStorage.
+
+let memoryState: { [email: string]: User } | null = null;
 
 const initialServerUsers: { [email: string]: User } = {
   'admin@feedforward.com': {
@@ -30,56 +31,55 @@ const initialServerUsers: { [email: string]: User } = {
   },
 };
 
+const listeners: Set<() => void> = new Set();
+
 const userStore = {
   get: (): { [email: string]: User } => {
-    if (typeof window === 'undefined') {
-      return initialServerUsers;
+    if (memoryState === null) {
+      if (typeof window === 'undefined') {
+        memoryState = initialServerUsers;
+      } else {
+        try {
+          const item = localStorage.getItem('mockUsers');
+          memoryState = item ? JSON.parse(item) : initialServerUsers;
+        } catch (e) {
+          console.error('Failed to parse users from localStorage', e);
+          memoryState = initialServerUsers;
+        }
+      }
     }
-    try {
-      const item = localStorage.getItem('mockUsers');
-      return item ? JSON.parse(item) : initialServerUsers;
-    } catch (e) {
-      console.error('Failed to parse users from localStorage', e);
-      return initialServerUsers;
-    }
+    return memoryState;
   },
   set: (value: { [email: string]: User }) => {
+    memoryState = value;
     try {
       localStorage.setItem('mockUsers', JSON.stringify(value));
-      // Dispatch a custom event to notify other instances of the store in the same tab
-      window.dispatchEvent(new Event('local-storage'));
     } catch (e) {
       console.error('Failed to set users in localStorage', e);
     }
+    listeners.forEach((l) => l());
   },
-  subscribe: (callback: () => void) => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'mockUsers') {
-        callback();
+  subscribe: (callback: () => void): (() => void) => {
+    listeners.add(callback);
+    return () => listeners.delete(callback);
+  },
+  getServerSnapshot: (): { [email: string]: User } => {
+    return initialServerUsers;
+  }
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event: StorageEvent) => {
+    if (event.key === 'mockUsers' && event.newValue) {
+      try {
+        memoryState = JSON.parse(event.newValue);
+        listeners.forEach((l) => l());
+      } catch(e) {
+        console.error('Failed to parse users from storage event', e);
       }
-    };
-    // For changes in other tabs
-    window.addEventListener('storage', handleStorageChange);
-    // For changes in the same tab
-    window.addEventListener('local-storage', callback);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('local-storage', callback);
-    };
-  },
-};
-
-
-const usersApi = {
-  getUsers: () => userStore.get(),
-  getUserByEmail: (email: string) => userStore.get()[email] || null,
-  addUser: (user: User) => {
-    if (!user.email) return;
-    const currentUsers = userStore.get();
-    const newUsers = { ...currentUsers, [user.email]: user };
-    userStore.set(newUsers);
-  },
-};
+    }
+  });
+}
 
 // --- Auth Context and Provider ---
 
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const [loading, setLoading] = useState(true);
 
-  const allUsers = useSyncExternalStore(userStore.subscribe, userStore.get, () => initialServerUsers);
+  const allUsers = useSyncExternalStore(userStore.subscribe, userStore.get, userStore.getServerSnapshot);
 
   useEffect(() => {
     setLoading(false);
@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     return new Promise<User>((resolve, reject) => {
       setTimeout(() => {
-        const foundUser = usersApi.getUserByEmail(email);
+        const foundUser = userStore.get()[email];
         if (foundUser) {
           localStorage.setItem('mockUserSessionEmail', email);
           setCurrentUserEmail(email);
@@ -148,7 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     return new Promise<User>((resolve, reject) => {
       setTimeout(() => {
-        if (usersApi.getUserByEmail(email)) {
+        const currentUsers = userStore.get();
+        if (currentUsers[email]) {
           setLoading(false);
           return reject(new Error('Email already in use'));
         }
@@ -159,7 +160,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
         };
         
-        usersApi.addUser(newUser);
+        const newUsers = { ...currentUsers, [email]: newUser };
+        userStore.set(newUsers);
 
         localStorage.setItem('mockUserSessionEmail', email);
         setCurrentUserEmail(email);
