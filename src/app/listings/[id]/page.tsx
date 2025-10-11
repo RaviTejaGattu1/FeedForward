@@ -54,7 +54,6 @@ import { JackpotTypewriter } from '@/components/ui/typewriter';
 import { useAuth } from '@/hooks/use-auth';
 import { LocationInput } from '@/components/location-input';
 
-type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -103,8 +102,6 @@ export default function ListingDetailPage({
   
   const listing = getListingById(id);
 
-  const [reservationStatus, setReservationStatus] = useState<ReservationStatus>('unreserved');
-  
   const [directions, setDirections] =
     useState<google.maps.DirectionsResult | null>(null);
   
@@ -133,22 +130,8 @@ export default function ListingDetailPage({
   
   const directionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-
   useEffect(() => {
-    if (listing) {
-        if (listing.status === 'awaiting approval') {
-            setReservationStatus('awaiting');
-        } else if (listing.status === 'approved') {
-            setReservationStatus('approved');
-        } else if (listing.status === 'delivered') {
-            setReservationStatus('completed');
-        }
-    }
-  }, [listing]);
-
-
-  useEffect(() => {
-    if (reservationStatus === 'approved') {
+    if (listing?.status === 'approved') {
       const lastSearch = localStorage.getItem('lastSearchLocation');
       if (lastSearch) {
         setStartLocation(lastSearch);
@@ -177,7 +160,7 @@ export default function ListingDetailPage({
         );
       }
     }
-  }, [reservationStatus, toast]);
+  }, [listing?.status, toast]);
 
   useEffect(() => {
      if (isMapLoaded && startLocation && destination) {
@@ -228,7 +211,6 @@ export default function ListingDetailPage({
   const handleReserve = () => {
     if (!listing || !user) return;
     updateListing(listing.id, { status: 'awaiting approval', claimedBy: user.uid });
-    setReservationStatus('awaiting');
     toast({
       title: 'Reservation Pending',
       description: 'The provider has been notified. You will be updated once they respond.',
@@ -238,7 +220,6 @@ export default function ListingDetailPage({
   const handleReceived = () => {
     if (!listing) return;
     updateListing(listing.id, { status: 'delivered' });
-    setReservationStatus('completed');
     toast({
       title: 'Transaction Complete!',
       description: 'Thank you for using FeedForward. This listing is now closed.',
@@ -275,7 +256,7 @@ export default function ListingDetailPage({
   }
 
   const isMyListing = user && user.uid === listing.userId;
-  const canReserve = user && !isMyListing && reservationStatus === 'unreserved';
+  const canReserve = user && !isMyListing && listing.status === 'active';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -336,7 +317,7 @@ export default function ListingDetailPage({
                 </CardContent>
               </Card>
 
-              {!user && reservationStatus === 'unreserved' && (
+              {!user && listing.status === 'active' && (
                 <Card>
                     <CardContent className='pt-6'>
                         <Button className='w-full' asChild>
@@ -376,7 +357,7 @@ export default function ListingDetailPage({
             </div>
           </div>
           
-          {reservationStatus === 'awaiting' && (
+          {listing.status === 'awaiting approval' && (
               <Alert variant="default" className="mt-8">
                   <Clock className="h-4 w-4" />
                   <AlertTitle>Awaiting Response</AlertTitle>
@@ -386,7 +367,7 @@ export default function ListingDetailPage({
               </Alert>
           )}
 
-          {reservationStatus === 'approved' && listing.pickupMethod && (
+          {listing.status === 'approved' && (
             <div className="mt-12">
                <h2 className="text-2xl font-semibold tracking-tight mb-6">
                 Pickup and Navigation
@@ -482,7 +463,7 @@ export default function ListingDetailPage({
             </div>
           )}
 
-          {reservationStatus === 'completed' && (
+          {listing.status === 'delivered' && (
                <Alert variant="default" className="mt-8 bg-green-500/20 border-green-500/40 text-green-700">
                   <Check className="h-4 w-4 text-green-700" />
                   <AlertTitle>Pickup Complete!</AlertTitle>
