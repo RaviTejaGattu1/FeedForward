@@ -24,7 +24,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,13 +44,13 @@ import { useListings } from '@/hooks/use-listings';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   GoogleMap,
-  DirectionsService,
   DirectionsRenderer,
   useLoadScript,
 } from '@react-google-maps/api';
 import { getCoordsFromAddress } from '@/lib/geocoding';
 import { JackpotTypewriter } from '@/components/ui/typewriter';
 import { useAuth } from '@/hooks/use-auth';
+import { LocationInput } from '@/components/location-input';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 type PickupOption = 'otp' | 'leave' | null;
@@ -435,12 +434,25 @@ export default function ListingDetailPage({
                     <CardContent className="grid gap-4">
                         <div className="grid gap-2">
                             <Label htmlFor="start-location">Start Location</Label>
-                            <Input 
-                                id="start-location" 
-                                value={startLocation} 
-                                onChange={(e) => setStartLocation(e.target.value)}
+                            {isMapLoaded ? (
+                              <LocationInput
+                                id="start-location"
+                                value={startLocation}
+                                onValueChange={setStartLocation}
+                                onLocationSelect={(lat, lng, addr) => {
+                                  setStartLocation(addr);
+                                  setUserLocationCoords({ lat, lng });
+                                }}
                                 placeholder="Enter your starting address"
-                            />
+                              />
+                            ) : (
+                              <Input 
+                                  id="start-location" 
+                                  value={startLocation} 
+                                  onChange={(e) => setStartLocation(e.target.value)}
+                                  placeholder="Enter your starting address"
+                              />
+                            )}
                         </div>
                         <div className="h-64 bg-muted rounded-md flex items-center justify-center">
                            {isMapLoaded ? (
@@ -480,5 +492,3 @@ export default function ListingDetailPage({
     </div>
   );
 }
-
-    
