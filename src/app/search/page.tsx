@@ -86,6 +86,7 @@ export default function SearchPage() {
     }
 
     try {
+        localStorage.setItem('lastSearchLocation', location);
         const userCoords = await getCoordsFromAddress(location);
         if (!userCoords) {
              setError("Could not find the location specified. Please try a different address.");

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -26,12 +26,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   CookingPot,
   MapPin,
-  Leaf,
-  BrainCircuit,
-  Flame,
   Check,
   MessageSquare,
   Clock,
@@ -49,6 +48,7 @@ import {
   DirectionsRenderer,
   useLoadScript,
 } from '@react-google-maps/api';
+import { getCoordsFromAddress } from '@/lib/geocoding';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 type PickupOption = 'otp' | 'leave' | null;
@@ -102,11 +102,14 @@ export default function ListingDetailPage({
   const [pickupOption, setPickupOption] = useState<PickupOption>(null); 
   const [providerInstructions, setProviderInstructions] = useState('');
 
-  // State for map directions
   const [directions, setDirections] =
     useState<google.maps.DirectionsResult | null>(null);
-  const [userLocation, setUserLocation] =
+  
+  const [startLocation, setStartLocation] = useState('');
+  const [userLocationCoords, setUserLocationCoords] =
     useState<google.maps.LatLngLiteral | null>(null);
+  
+  const destination = (listing?.latitude && listing?.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing?.address;
 
   const { isLoaded: isMapLoaded } = useLoadScript(
     googleMapsApiKey
@@ -116,6 +119,10 @@ export default function ListingDetailPage({
         }
       : { skip: true }
   );
+  
+  // Ref for debouncing start location input
+  const directionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   useEffect(() => {
     if (listing) {
@@ -131,27 +138,84 @@ export default function ListingDetailPage({
     }
   }, [listing]);
 
-  // Get user's location when pickup is approved
+  // Get user's location when pickup is approved, default to last search location
   useEffect(() => {
-    if (reservationStatus === 'approved' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        () => {
-          console.error('Could not get user location.');
-          toast({
-            variant: 'destructive',
-            title: 'Location Error',
-            description: 'Could not get your current location for directions. Please ensure location services are enabled.',
-          });
-        }
-      );
+    if (reservationStatus === 'approved') {
+      const lastSearch = localStorage.getItem('lastSearchLocation');
+      if (lastSearch) {
+        setStartLocation(lastSearch);
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+             const geocoder = new window.google.maps.Geocoder();
+             const latlng = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+            };
+            geocoder.geocode({ location: latlng }, (results, status) => {
+              if (status === 'OK' && results?.[0]) {
+                setStartLocation(results[0].formatted_address);
+              }
+            });
+          },
+          () => {
+            console.error('Could not get user location.');
+            toast({
+              variant: 'destructive',
+              title: 'Location Error',
+              description: 'Could not get your current location. Please enter a starting address.',
+            });
+          }
+        );
+      }
     }
   }, [reservationStatus, toast]);
+
+  // Effect to update directions when start location or destination changes
+  useEffect(() => {
+     if (isMapLoaded && startLocation && destination) {
+        if (directionsTimeoutRef.current) {
+          clearTimeout(directionsTimeoutRef.current);
+        }
+
+        directionsTimeoutRef.current = setTimeout(async () => {
+          try {
+            const originCoords = await getCoordsFromAddress(startLocation);
+            if (originCoords) {
+              setUserLocationCoords(originCoords);
+
+              const directionsService = new google.maps.DirectionsService();
+              directionsService.route(
+                {
+                  origin: originCoords,
+                  destination: destination,
+                  travelMode: google.maps.TravelMode.DRIVING,
+                },
+                (result, status) => {
+                  if (status === google.maps.DirectionsStatus.OK && result) {
+                    setDirections(result);
+                  } else {
+                    console.error(`error fetching directions ${result}`);
+                    setDirections(null);
+                  }
+                }
+              );
+            } else {
+                 setDirections(null);
+            }
+          } catch (error) {
+            console.error("Error getting directions:", error);
+            setDirections(null);
+          }
+        }, 1000); // Debounce for 1 second
+     }
+
+      return () => {
+      if (directionsTimeoutRef.current) {
+        clearTimeout(directionsTimeoutRef.current);
+      }
+    };
+  }, [startLocation, destination, isMapLoaded]);
 
 
   const handleReserve = () => {
@@ -202,9 +266,6 @@ export default function ListingDetailPage({
        </div>
     );
   }
-
-  const destination = (listing.latitude && listing.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing.address;
-
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -350,32 +411,23 @@ export default function ListingDetailPage({
                         <Navigation className="h-8 w-8 text-primary" />
                         <CardTitle>Route to Pickup Location</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="grid gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="start-location">Start Location</Label>
+                            <Input 
+                                id="start-location" 
+                                value={startLocation} 
+                                onChange={(e) => setStartLocation(e.target.value)}
+                                placeholder="Enter your starting address"
+                            />
+                        </div>
                         <div className="h-64 bg-muted rounded-md flex items-center justify-center">
                            {isMapLoaded ? (
                               <GoogleMap
                                 mapContainerClassName="w-full h-full"
-                                center={userLocation || { lat: 0, lng: 0 }}
-                                zoom={userLocation ? 12 : 1}
+                                center={userLocationCoords || { lat: 0, lng: 0 }}
+                                zoom={userLocationCoords ? 12 : 1}
                               >
-                                {userLocation && destination && directions === null && (
-                                    <DirectionsService
-                                        options={{
-                                            destination,
-                                            origin: userLocation,
-                                            travelMode: window.google.maps.TravelMode.DRIVING,
-                                        }}
-                                        callback={(response) => {
-                                            if (response !== null) {
-                                                if (response.status === 'OK') {
-                                                    setDirections(response);
-                                                } else {
-                                                    console.error('Directions request failed due to ' + response.status);
-                                                }
-                                            }
-                                        }}
-                                    />
-                                )}
                                 {directions && (
                                     <DirectionsRenderer options={{ directions }} />
                                 )}
@@ -407,5 +459,3 @@ export default function ListingDetailPage({
     </div>
   );
 }
-
-    
