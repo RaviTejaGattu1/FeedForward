@@ -155,6 +155,12 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const getListingById = useCallback((listingId: string) => {
     return listingsStore.getSnapshot().find(l => l.id === listingId);
   }, []);
+  
+  const getOtpForListing = useCallback((listingId: string) => {
+    const numericId = parseInt(listingId.replace(/[^0-9]/g, ''), 10);
+    const otp = String(numericId % 1000000).padStart(6, '0');
+    return otp;
+  }, []);
 
   return {
     listings,
@@ -163,5 +169,8 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     removeListing,
     isInitialized,
     getListingById,
+    getOtpForListing,
   };
 }
+
+    

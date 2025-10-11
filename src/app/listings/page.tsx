@@ -69,12 +69,8 @@ const statusStyles: { [key in ListingStatus]: string } = {
 };
 
 function OtpDisplay({ listingId }: { listingId: string }) {
-    const [otp, setOtp] = useState('');
-
-    useEffect(() => {
-        const finalOtp = String(Math.floor(100000 + Math.random() * 900000));
-        setOtp(finalOtp);
-    }, [listingId]);
+    const { getOtpForListing } = useListings();
+    const otp = getOtpForListing(listingId);
 
     return (
         <div className="flex items-center gap-2 text-sm border rounded-lg p-2 bg-muted">
@@ -371,3 +367,5 @@ export default function MyListingsPage() {
     </div>
   );
 }
+
+    

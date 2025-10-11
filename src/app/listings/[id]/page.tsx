@@ -97,7 +97,7 @@ export default function ListingDetailPage({
 }) {
   const { toast } = useToast();
   const router = useRouter();
-  const { getListingById, updateListing, isInitialized } = useListings();
+  const { getListingById, updateListing, isInitialized, getOtpForListing } = useListings();
   const { user, loading: authLoading } = useAuth();
   
   const listing = getListingById(id);
@@ -115,7 +115,7 @@ export default function ListingDetailPage({
   
   const destination = (listing?.latitude && listing?.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing?.address;
 
-  const [otp, setOtp] = useState('123456');
+  const otp = listing ? getOtpForListing(listing.id) : '';
 
   const { isLoaded: isMapLoaded } = useLoadScript(
     googleMapsApiKey
@@ -142,12 +142,6 @@ export default function ListingDetailPage({
     }
   }, [listing]);
 
-  useEffect(() => {
-    if (reservationStatus === 'approved' && pickupOption === 'otp') {
-      const finalOtp = String(Math.floor(100000 + Math.random() * 900000));
-      setOtp(finalOtp);
-    }
-  }, [reservationStatus, pickupOption]);
 
   useEffect(() => {
     if (reservationStatus === 'approved') {
@@ -486,3 +480,5 @@ export default function ListingDetailPage({
     </div>
   );
 }
+
+    
