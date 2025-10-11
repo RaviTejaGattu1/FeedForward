@@ -65,7 +65,7 @@ export default function SearchPage() {
   );
 
   useEffect(() => {
-    // On initial load, show all active listings if no search has been performed yet.
+    // On initial load, or when allListings changes, show all active listings if no search has been performed yet.
     if (isInitialized && !hasSearched) {
         setFilteredListings(allListings.filter(l => l.status === 'active'));
     }
