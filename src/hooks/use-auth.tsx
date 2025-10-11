@@ -21,8 +21,6 @@ export type User = {
 
 // --- Store Implementation ---
 
-let memoryState: { [email: string]: User } | null = null;
-
 const initialServerUsers: { [email: string]: User } = {
   'admin@feedforward.com': {
     uid: 'admin-user-id',
@@ -31,21 +29,24 @@ const initialServerUsers: { [email: string]: User } = {
   },
 };
 
+let memoryState: { [email: string]: User } | null = null;
 const listeners: Set<() => void> = new Set();
 
 const userStore = {
   get: (): { [email: string]: User } => {
+    if (typeof window === 'undefined') {
+      // On the server, always return the initial hardcoded list.
+      return initialServerUsers;
+    }
+
+    // On the client, read from localStorage on the first call.
     if (memoryState === null) {
-      if (typeof window === 'undefined') {
+      try {
+        const item = localStorage.getItem('mockUsers');
+        memoryState = item ? JSON.parse(item) : initialServerUsers;
+      } catch (e) {
+        console.error('Failed to parse users from localStorage', e);
         memoryState = initialServerUsers;
-      } else {
-        try {
-          const item = localStorage.getItem('mockUsers');
-          memoryState = item ? JSON.parse(item) : initialServerUsers;
-        } catch (e) {
-          console.error('Failed to parse users from localStorage', e);
-          memoryState = initialServerUsers;
-        }
       }
     }
     return memoryState;
@@ -57,29 +58,33 @@ const userStore = {
     } catch (e) {
       console.error('Failed to set users in localStorage', e);
     }
+    // Notify all listeners that the data has changed.
     listeners.forEach((l) => l());
   },
   subscribe: (callback: () => void): (() => void) => {
     listeners.add(callback);
     return () => listeners.delete(callback);
   },
-  getServerSnapshot: (): { [email: string]: User } => {
-    return initialServerUsers;
-  }
 };
 
+// Listen for changes in other tabs
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event: StorageEvent) => {
-    if (event.key === 'mockUsers' && event.newValue) {
+    if (event.key === 'mockUsers') {
       try {
-        memoryState = JSON.parse(event.newValue);
+        const newValue = event.newValue;
+        // Update the in-memory state and notify listeners.
+        memoryState = newValue ? JSON.parse(newValue) : initialServerUsers;
         listeners.forEach((l) => l());
       } catch(e) {
         console.error('Failed to parse users from storage event', e);
+        memoryState = initialServerUsers;
+        listeners.forEach((l) => l());
       }
     }
   });
 }
+
 
 // --- Auth Context and Provider ---
 
@@ -106,7 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const [loading, setLoading] = useState(true);
 
-  const allUsers = useSyncExternalStore(userStore.subscribe, userStore.get, userStore.getServerSnapshot);
+  const allUsers = useSyncExternalStore(userStore.subscribe, userStore.get, () => initialServerUsers);
 
   useEffect(() => {
     setLoading(false);
