@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
+import { NotificationProvider } from '@/components/notification-provider';
 
 export const metadata: Metadata = {
   title: 'FeedForward',
@@ -31,7 +32,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
           <Toaster />
         </AuthProvider>
       </body>
