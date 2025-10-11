@@ -31,95 +31,20 @@ export type Listing = {
 };
 
 // --- Store Implementation ---
+// This is the single source of truth for our listings data.
 
 let listingsStore: Listing[] = [];
+if (typeof window !== 'undefined') {
+    try {
+        const storedListings = localStorage.getItem('mockListings');
+        listingsStore = storedListings ? JSON.parse(storedListings) : [];
+    } catch {
+        listingsStore = [];
+    }
+}
 
 // A set of listeners to call when the store changes.
 const listeners = new Set<() => void>();
-
-const getInitialListings = (): Listing[] => {
-    if (typeof window === 'undefined') {
-        return [];
-    }
-    const storedListings = localStorage.getItem('mockListings');
-    if (storedListings) {
-        try {
-            return JSON.parse(storedListings);
-        } catch (e) {
-            console.error("Failed to parse listings from localStorage", e);
-            return [];
-        }
-    }
-    // Initial default data if localStorage is empty
-    const initialListings: Listing[] = [
-        {
-            id: 'mock-1',
-            foodName: 'Sourdough Bread',
-            foodType: 'Baked Goods',
-            quantity: 5,
-            address: '123 Main St, Anytown, USA',
-            latitude: 40.7128,
-            longitude: -74.0060,
-            status: 'active',
-            claimedBy: null,
-            createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
-            userId: 'admin-user-id',
-            imageUrl: 'https://images.unsplash.com/photo-1554933054-0b679a7982ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxicmVhZCUyMGxvYWZ8ZW58MHx8fHwxNzU4OTM0NjU0fDA&ixlib=rb-4.1.0&q=80&w=1080',
-        },
-        {
-            id: 'mock-2',
-            foodName: 'Fresh Apples',
-            foodType: 'Produce',
-            quantity: 20,
-            address: '456 Oak Ave, Anytown, USA',
-            latitude: 40.7228,
-            longitude: -74.0160,
-            status: 'awaiting approval',
-            claimedBy: 'Community Shelter',
-            createdAt: new Date(Date.now() - 3600 * 2000).toISOString(),
-            userId: 'admin-user-id',
-            imageUrl: 'https://images.unsplash.com/photo-1651774031696-1531123f9831?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhcHBsZXMlMjBiYXNrZXR8ZW58MHx8fHwxNzU4OTUwNzkxfDA&ixlib=rb-4.1.0&q=80&w=1080',
-        },
-        {
-            id: 'mock-3',
-            foodName: 'Canned Beans',
-            foodType: 'Pantry',
-            quantity: 24,
-            address: '201 S 4th St, San Jose, CA 95112, USA',
-            latitude: 37.3352,
-            longitude: -121.8811,
-            status: 'active',
-            claimedBy: null,
-            createdAt: new Date(Date.now() - 3600 * 4000).toISOString(),
-            userId: 'another-user-id',
-            imageUrl: 'https://images.unsplash.com/photo-1626436273093-35351f1a7d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uZWQlMjBiZWFuc3xlbnwwfHx8fDE3NTkwMTc1NDd8MA&ixlib=rb-4.1.0&q=80&w=1080'
-        },
-    ];
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('mockListings', JSON.stringify(initialListings));
-    }
-    return initialListings;
-};
-
-// Initialize the store from localStorage.
-// This ensures that the store is hydrated with the latest data from localStorage upon script load.
-if (typeof window !== 'undefined') {
-    listingsStore = getInitialListings();
-}
-
-
-// Function to update the store and notify listeners.
-const emitChange = () => {
-  listeners.forEach(listener => listener());
-}
-
-const setListings = (newStoreState: Listing[]) => {
-  listingsStore = newStoreState;
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('mockListings', JSON.stringify(listingsStore));
-  }
-  emitChange();
-}
 
 // Function for components to subscribe to changes.
 const subscribe = (listener: () => void): (() => void) => {
@@ -127,22 +52,20 @@ const subscribe = (listener: () => void): (() => void) => {
   return () => listeners.delete(listener);
 }
 
-// This handles changes from other tabs.
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (event.key === 'mockListings' && event.newValue) {
-      try {
-        listingsStore = JSON.parse(event.newValue);
-        emitChange();
-      } catch (e) {
-        console.error("Failed to parse listings from storage event", e);
-      }
-    }
-  });
+// Function to update the store and notify all listeners.
+const setListings = (newListings: Listing[]) => {
+  listingsStore = newListings;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('mockListings', JSON.stringify(listingsStore));
+  }
+  // Notify all subscribed components that the data has changed.
+  listeners.forEach(listener => listener());
 }
 
-// --- Public API for the store ---
-export const listingsApi = {
+
+// --- Store API ---
+// These are the functions that components will use to interact with the store.
+const listingsApi = {
   addListing: (newListing: Listing) => {
     setListings([...listingsStore, newListing]);
   },
@@ -153,6 +76,7 @@ export const listingsApi = {
     setListings(listingsStore.filter(l => l.id !== listingId));
   },
   getListingById: (listingId: string): Listing | undefined => {
+    // Return a copy to prevent mutation
     const listing = listingsStore.find(l => l.id === listingId);
     return listing ? { ...listing } : undefined;
   },
@@ -162,17 +86,84 @@ export const listingsApi = {
 };
 
 
-// --- React Hook ---
-
-const serverSnapshot = getInitialListings();
-function getServerSnapshot() {
-    return serverSnapshot;
+// This handles changes from other tabs.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'mockListings' && event.newValue) {
+      try {
+        const newListings = JSON.parse(event.newValue);
+        listingsStore = newListings;
+        listeners.forEach(listener => listener());
+      } catch (e) {
+        console.error("Failed to parse listings from storage event", e);
+      }
+    }
+  });
 }
+
+
+// --- React Hook ---
+const initialServerListings: Listing[] = [
+    {
+        id: 'mock-1',
+        foodName: 'Sourdough Bread',
+        foodType: 'Baked Goods',
+        quantity: 5,
+        address: '123 Main St, Anytown, USA',
+        latitude: 40.7128,
+        longitude: -74.0060,
+        status: 'active',
+        claimedBy: null,
+        createdAt: new Date(Date.now() - 3600 * 1000).toISOString(),
+        userId: 'admin-user-id',
+        imageUrl: 'https://images.unsplash.com/photo-1554933054-0b679a7982ca?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxicmVhZCUyMGxvYWZ8ZW58MHx8fHwxNzU4OTM0NjU0fDA&ixlib=rb-4.1.0&q=80&w=1080',
+    },
+    {
+        id: 'mock-2',
+        foodName: 'Fresh Apples',
+        foodType: 'Produce',
+        quantity: 20,
+        address: '456 Oak Ave, Anytown, USA',
+        latitude: 40.7228,
+        longitude: -74.0160,
+        status: 'awaiting approval',
+        claimedBy: 'Community Shelter',
+        createdAt: new Date(Date.now() - 3600 * 2000).toISOString(),
+        userId: 'admin-user-id',
+        imageUrl: 'https://images.unsplash.com/photo-1651774031696-1531123f9831?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhcHBsZXMlMjBiYXNrZXR8ZW58MHx8fHwxNzU4OTUwNzkxfDA&ixlib=rb-4.1.0&q=80&w=1080',
+    },
+    {
+        id: 'mock-3',
+        foodName: 'Canned Beans',
+        foodType: 'Pantry',
+        quantity: 24,
+        address: '201 S 4th St, San Jose, CA 95112, USA',
+        latitude: 37.3352,
+        longitude: -121.8811,
+        status: 'active',
+        claimedBy: null,
+        createdAt: new Date(Date.now() - 3600 * 4000).toISOString(),
+        userId: 'another-user-id',
+        imageUrl: 'https://images.unsplash.com/photo-1626436273093-35351f1a7d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYW5uZWQlMjBiZWFuc3xlbnwwfHx8fDE3NTkwMTc1NDd8MA&ixlib=rb-4.1.0&q=80&w=1080'
+    },
+];
+
+// Initialize localStorage with default data if it's empty
+if (typeof window !== 'undefined' && !localStorage.getItem('mockListings')) {
+    localStorage.setItem('mockListings', JSON.stringify(initialServerListings));
+    listingsStore = initialServerListings;
+}
+
+function getServerSnapshot() {
+    return initialServerListings;
+}
+
 
 export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const { forCurrentUser = false } = options;
   const { user } = useAuth();
-
+  
+  // useSyncExternalStore makes React aware of our external store.
   const allListings = useSyncExternalStore(subscribe, listingsApi.getSnapshot, getServerSnapshot);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -180,12 +171,9 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     setIsInitialized(true);
   }, []);
   
-  let listings: Listing[];
-  if (forCurrentUser && user) {
-    listings = allListings.filter(l => l.userId === user.uid);
-  } else {
-    listings = allListings;
-  }
+  const listings = forCurrentUser && user
+    ? allListings.filter(l => l.userId === user.uid)
+    : allListings;
   
   const addListing = useCallback(
     async (

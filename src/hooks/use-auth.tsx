@@ -38,13 +38,7 @@ const AuthContext = createContext<AuthContextType>({
 
 const getMockUsers = (): { [email: string]: User } => {
   if (typeof window === 'undefined') {
-    return {
-      'admin@feedforward.com': {
-        uid: 'admin-user-id',
-        email: 'admin@feedforward.com',
-        displayName: 'Admin User',
-      },
-    };
+    return {};
   }
   const storedUsers = localStorage.getItem('mockUsers');
   return storedUsers
@@ -63,6 +57,17 @@ const setMockUsers = (users: { [email: string]: User }) => {
     localStorage.setItem('mockUsers', JSON.stringify(users));
   }
 };
+
+// Initialize the mock users database if it doesn't exist
+if (typeof window !== 'undefined' && !localStorage.getItem('mockUsers')) {
+    setMockUsers({
+        'admin@feedforward.com': {
+            uid: 'admin-user-id',
+            email: 'admin@feedforward.com',
+            displayName: 'Admin User',
+        },
+    });
+}
 
 // --- Auth Provider ---
 
