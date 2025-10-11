@@ -1,7 +1,7 @@
 
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 type TypewriterProps = {
@@ -22,53 +22,57 @@ export function Typewriter({
   as: Component = 'span',
 }: TypewriterProps) {
   const [displayedText, setDisplayedText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [index, setIndex] = useState(0);
   const hasRun = useRef(false);
 
   useEffect(() => {
-    if (hasRun.current) return;
-    
-    const startTimeout = setTimeout(() => {
-      hasRun.current = true;
-      const handleTyping = () => {
+    if (hasRun.current || !text) return;
 
+    let timeoutId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout;
+
+    timeoutId = setTimeout(() => {
+      hasRun.current = true;
+      let i = 0;
+      let isDeleting = false;
+
+      intervalId = setInterval(() => {
         if (loop) {
           if (isDeleting) {
             setDisplayedText((prev) => prev.slice(0, prev.length - 1));
+            if (displayedText.length === 1) {
+              isDeleting = false;
+              i = 0;
+            }
           } else {
-            setDisplayedText((prev) => prev + text.charAt(index));
-          }
-
-          if (!isDeleting && displayedText === text) {
-            // Pause at the end
-            setTimeout(() => setIsDeleting(true), 2000);
-          } else if (isDeleting && displayedText === '') {
-            setIsDeleting(false);
-            setIndex(0);
-          } else {
-            setIndex((prev) => (isDeleting ? prev : prev + 1));
+            setDisplayedText((prev) => prev + text.charAt(i));
+            i++;
+            if (i === text.length) {
+              // Pause at the end before deleting
+              setTimeout(() => {
+                isDeleting = true;
+              }, 2000);
+            }
           }
         } else {
           // One-time typing
-          if (index < text.length) {
-            setDisplayedText((prev) => prev + text.charAt(index));
-            setIndex((prev) => prev + 1);
+          if (i < text.length) {
+            setDisplayedText((prev) => prev + text.charAt(i));
+            i++;
+          } else {
+            clearInterval(intervalId);
           }
         }
-      };
+      }, speed);
 
-      const typingInterval = setInterval(handleTyping, speed);
-
-      return () => {
-        clearInterval(typingInterval);
-      };
     }, delay);
 
     return () => {
-      clearTimeout(startTimeout);
+      clearTimeout(timeoutId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [displayedText, index, isDeleting, text, speed, loop, delay]);
+  }, [text, speed, loop, delay]);
 
   return (
     <Component
