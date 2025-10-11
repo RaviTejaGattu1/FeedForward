@@ -157,7 +157,7 @@ export const listingsApi = {
     return listingsStore.find(l => l.id === listingId);
   },
   getAllListings: (): Listing[] => {
-    // CRITICAL: Return a new array to prevent mutation issues.
+    // CRITICAL: Return a new array to prevent mutation issues on the client.
     return [...listingsStore];
   }
 };
@@ -165,12 +165,17 @@ export const listingsApi = {
 
 // --- React Hook ---
 
+const serverSnapshot = getInitialListings();
+function getServerSnapshot() {
+    return serverSnapshot;
+}
+
 export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const { forCurrentUser = false } = options;
   const { user } = useAuth();
 
   // useSyncExternalStore makes React aware of our external store.
-  const allListings = useSyncExternalStore(subscribe, listingsApi.getAllListings, listingsApi.getAllListings);
+  const allListings = useSyncExternalStore(subscribe, listingsApi.getAllListings, getServerSnapshot);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
