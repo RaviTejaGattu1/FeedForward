@@ -39,6 +39,7 @@ import {
   LogIn,
   KeyRound,
   Info,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -366,7 +367,8 @@ export default function MyListingsPage() {
                             <TableHead>Food Name</TableHead>
                              <TableHead>Status</TableHead>
                             <TableHead>Claimed By</TableHead>
-                            <TableHead className="text-right">Date</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -382,12 +384,54 @@ export default function MyListingsPage() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>{listing.claimedBy}</TableCell>
-                                <TableCell className="text-right">{new Date(listing.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell>{new Date(listing.createdAt).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right">
+                                    <AlertDialog>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                            <Button
+                                                aria-haspopup="true"
+                                                size="icon"
+                                                variant="ghost"
+                                            >
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">Toggle menu</span>
+                                            </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem className="text-red-500">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Delete
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete this listing data.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    onClick={() => removeListing(listing.id)}
+                                                >
+                                                    Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </TableCell>
                             </TableRow>
                         ))}
                         {isInitialized && deliveredListings.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                                     You have no delivered listings yet.
                                 </TableCell>
                             </TableRow>
@@ -402,5 +446,3 @@ export default function MyListingsPage() {
     </div>
   );
 }
-
-    
