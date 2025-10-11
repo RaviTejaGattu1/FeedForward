@@ -66,31 +66,34 @@ export default function SearchPage() {
   );
 
   useEffect(() => {
-    if (isInitialized) {
+    // On initial load, show all active listings if no search has been performed yet.
+    if (isInitialized && !hasSearched) {
         setFilteredListings(allListings.filter(l => l.status === 'active'));
     }
-  }, [allListings, isInitialized])
+  }, [allListings, isInitialized, hasSearched]);
 
   const handleSearch = async () => {
     setIsSearching(true);
     setHasSearched(true);
     setError(null);
-    setFilteredListings([]);
+
+    const activeListings = allListings.filter(l => l.status === 'active');
 
     if (!location) {
-        setFilteredListings(allListings.filter(l => l.status === 'active'));
+        // If search is cleared, show all active listings without distance.
+        setFilteredListings(activeListings);
         setIsSearching(false);
         return;
     }
+
     try {
         const userCoords = await getCoordsFromAddress(location);
         if (!userCoords) {
              setError("Could not find the location specified. Please try a different address.");
+             setFilteredListings([]);
              setIsSearching(false);
              return;
         }
-        
-        const activeListings = allListings.filter(l => l.status === 'active');
         
         const listingsWithDistance: ListingWithDistance[] = activeListings
           .filter(listing => listing.latitude && listing.longitude) // Ensure listings have coordinates
@@ -211,10 +214,10 @@ export default function SearchPage() {
           )}
 
           {/* Results Section */}
-          {(hasSearched || isInitialized) && (
+          {(isInitialized) && (
             <section>
               <h2 className="text-2xl font-semibold tracking-tight mb-6">
-                {hasSearched ? "Search Results" : "All Available Listings"}
+                {hasSearched && location ? "Search Results" : "All Available Listings"}
               </h2>
                {filteredListings.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
