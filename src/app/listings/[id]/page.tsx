@@ -43,9 +43,25 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useListings } from '@/hooks/use-listings';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  GoogleMap,
+  DirectionsService,
+  DirectionsRenderer,
+  useLoadScript,
+} from '@react-google-maps/api';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 type PickupOption = 'otp' | 'leave' | null;
+
+const MAP_LIBRARIES = ['places'] as (
+  | 'places'
+  | 'drawing'
+  | 'geometry'
+  | 'localContext'
+  | 'visualization'
+)[];
+
+const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
 function ListingDetailSkeleton() {
     return (
@@ -86,6 +102,21 @@ export default function ListingDetailPage({
   const [pickupOption, setPickupOption] = useState<PickupOption>(null); 
   const [providerInstructions, setProviderInstructions] = useState('');
 
+  // State for map directions
+  const [directions, setDirections] =
+    useState<google.maps.DirectionsResult | null>(null);
+  const [userLocation, setUserLocation] =
+    useState<google.maps.LatLngLiteral | null>(null);
+
+  const { isLoaded: isMapLoaded } = useLoadScript(
+    googleMapsApiKey
+      ? {
+          googleMapsApiKey,
+          libraries: MAP_LIBRARIES,
+        }
+      : { skip: true }
+  );
+
   useEffect(() => {
     if (listing) {
         if (listing.status === 'awaiting approval') {
@@ -99,6 +130,28 @@ export default function ListingDetailPage({
         }
     }
   }, [listing]);
+
+  // Get user's location when pickup is approved
+  useEffect(() => {
+    if (reservationStatus === 'approved' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        () => {
+          console.error('Could not get user location.');
+          toast({
+            variant: 'destructive',
+            title: 'Location Error',
+            description: 'Could not get your current location for directions. Please ensure location services are enabled.',
+          });
+        }
+      );
+    }
+  }, [reservationStatus, toast]);
 
 
   const handleReserve = () => {
@@ -149,6 +202,9 @@ export default function ListingDetailPage({
        </div>
     );
   }
+
+  const destination = (listing.latitude && listing.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing.address;
+
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -296,7 +352,37 @@ export default function ListingDetailPage({
                     </CardHeader>
                     <CardContent>
                         <div className="h-64 bg-muted rounded-md flex items-center justify-center">
-                            <p className="text-muted-foreground">[Google Maps integration placeholder]</p>
+                           {isMapLoaded ? (
+                              <GoogleMap
+                                mapContainerClassName="w-full h-full"
+                                center={userLocation || { lat: 0, lng: 0 }}
+                                zoom={userLocation ? 12 : 1}
+                              >
+                                {userLocation && destination && directions === null && (
+                                    <DirectionsService
+                                        options={{
+                                            destination,
+                                            origin: userLocation,
+                                            travelMode: window.google.maps.TravelMode.DRIVING,
+                                        }}
+                                        callback={(response) => {
+                                            if (response !== null) {
+                                                if (response.status === 'OK') {
+                                                    setDirections(response);
+                                                } else {
+                                                    console.error('Directions request failed due to ' + response.status);
+                                                }
+                                            }
+                                        }}
+                                    />
+                                )}
+                                {directions && (
+                                    <DirectionsRenderer options={{ directions }} />
+                                )}
+                              </GoogleMap>
+                           ) : (
+                                <p className="text-muted-foreground">Loading map...</p>
+                           )}
                         </div>
                     </CardContent>
                   </Card>
@@ -321,3 +407,5 @@ export default function ListingDetailPage({
     </div>
   );
 }
+
+    
