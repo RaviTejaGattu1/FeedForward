@@ -176,10 +176,17 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     // The store is now initialized outside the hook, but we can keep this for consumers.
     setIsInitialized(true);
   }, []);
-
-  const listings = forCurrentUser && user 
-    ? allListings.filter(l => l.userId === user.uid)
-    : allListings;
+  
+  let listings: Listing[];
+  if (forCurrentUser) {
+    if (user) {
+      listings = allListings.filter(l => l.userId === user.uid);
+    } else {
+      listings = []; // If no user, there are no "current user" listings.
+    }
+  } else {
+    listings = allListings; // For public pages, always show all listings.
+  }
   
   const addListing = useCallback(
     async (
