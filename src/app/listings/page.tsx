@@ -37,6 +37,7 @@ import {
   Check,
   MessageSquare,
   LogIn,
+  KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -254,7 +255,17 @@ export default function MyListingsPage() {
                               <XCircle className="mr-2 h-4 w-4" /> Deny
                             </Button>
                           </div>
-                        ) : listing.status === 'approved' || listing.status === 'receiver incoming' ? (
+                        ) : listing.status === 'approved' ? (
+                            <div className="flex items-center justify-end gap-4">
+                                <div className="flex items-center gap-2 text-sm border rounded-lg p-2 bg-muted">
+                                    <KeyRound className="h-4 w-4 text-muted-foreground" />
+                                    <span className="font-mono text-base font-semibold tracking-wider">123456</span>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={() => handleDelivered(listing.id)}>
+                                    <CheckCircle2 className="mr-2 h-4 w-4" /> Delivered
+                                </Button>
+                            </div>
+                        ) : listing.status === 'receiver incoming' ? (
                             <Button variant="outline" size="sm" onClick={() => handleDelivered(listing.id)}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" /> Delivered Successfully
                             </Button>
