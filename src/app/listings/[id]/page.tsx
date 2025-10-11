@@ -1,8 +1,10 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -34,37 +36,40 @@ import {
   MessageSquare,
   Clock,
   Navigation,
+  ChevronLeft,
 } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data for a single listing, assuming we get this from a page param
-const listing = {
-  id: '1',
-  foodName: 'Sourdough Bread',
-  quantity: 10,
-  address: '123 Main St, Anytown USA',
-  distance: 2.5,
-  imageUrl: PlaceHolderImages.find((img) => img.id === 'bread')
-    ?.imageUrl as string,
-  imageHint: PlaceHolderImages.find((img) => img.id === 'bread')
-    ?.imageHint as string,
-  provider: 'Good Samaritan Bakery',
-  postedAt: '2 hours ago',
-  freshness: '95% (Excellent)',
-  macros: 'Calories: 80, Protein: 3g, Carbs: 15g',
-  recipes: [
-    'Garlic bread: Slice, spread with butter and garlic, and bake.',
-    'Croutons: Cut into cubes, toss with oil, and bake until crispy.',
-    'Bread pudding: A sweet dish made with milk, eggs, and sugar.',
-  ],
-};
+import { useListings } from '@/hooks/use-listings';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 type PickupOption = 'otp' | 'leave' | null;
+
+function ListingDetailSkeleton() {
+    return (
+        <div className="flex min-h-screen flex-col">
+            <AppHeader />
+            <main className="flex-1">
+                <div className="container py-8 md:py-12">
+                    <Skeleton className="h-8 w-32 mb-8" />
+                    <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+                        <Skeleton className="w-full h-96 rounded-lg" />
+                        <div className="flex flex-col gap-6">
+                            <Skeleton className="h-8 w-24" />
+                            <Skeleton className="h-12 w-3/4" />
+                            <Skeleton className="h-6 w-1/2" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <AppFooter />
+        </div>
+    );
+}
 
 export default function ListingDetailPage({
   params,
@@ -72,12 +77,33 @@ export default function ListingDetailPage({
   params: { id: string };
 }) {
   const { toast } = useToast();
+  const router = useRouter();
+  const { getListingById, updateListing, isInitialized } = useListings();
+  
+  const listing = getListingById(params.id);
+
   const [reservationStatus, setReservationStatus] = useState<ReservationStatus>('unreserved');
-  // This would be set by the provider's action in a real app
   const [pickupOption, setPickupOption] = useState<PickupOption>(null); 
   const [providerInstructions, setProviderInstructions] = useState('');
 
+  useEffect(() => {
+    if (listing) {
+        if (listing.status === 'awaiting approval') {
+            setReservationStatus('awaiting');
+        } else if (listing.status === 'approved') {
+            setReservationStatus('approved');
+            // This needs to be stored in the listing in a real app
+            setPickupOption('otp'); 
+        } else if (listing.status === 'delivered') {
+            setReservationStatus('completed');
+        }
+    }
+  }, [listing]);
+
+
   const handleReserve = () => {
+    if (!listing) return;
+    updateListing(listing.id, { status: 'awaiting approval', claimedBy: 'A Requester' });
     setReservationStatus('awaiting');
     toast({
       title: 'Reservation Pending',
@@ -86,6 +112,8 @@ export default function ListingDetailPage({
   };
 
   const handleReceived = () => {
+    if (!listing) return;
+    updateListing(listing.id, { status: 'delivered' });
     setReservationStatus('completed');
     toast({
       title: 'Transaction Complete!',
@@ -93,51 +121,67 @@ export default function ListingDetailPage({
     });
   }
 
-  // Simulating provider approval after a delay
-  const simulateProviderApproval = (option: PickupOption, instructions?: string) => {
-    setTimeout(() => {
-      setReservationStatus('approved');
-      setPickupOption(option);
-      if (instructions) {
-        setProviderInstructions(instructions);
-      }
-      toast({
-        title: 'Reservation Approved!',
-        description: 'The provider has approved your request. Please see pickup instructions.',
-      });
-    }, 3000);
-  };
+  if (!isInitialized) {
+    return <ListingDetailSkeleton />;
+  }
+
+  if (!listing) {
+    return (
+       <div className="flex min-h-screen flex-col">
+        <AppHeader />
+        <main className="flex-1 flex items-center justify-center">
+            <Card className="text-center w-full max-w-lg">
+                <CardHeader>
+                    <CardTitle>Listing Not Found</CardTitle>
+                    <CardDescription>The food listing you are looking for does not exist or has been removed.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/search">
+                            <ChevronLeft className="mr-2 h-4 w-4" />
+                            Back to Search
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </main>
+        <AppFooter />
+       </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
       <AppHeader />
       <main className="flex-1">
         <div className="container py-8 md:py-12">
+         <Button variant="ghost" onClick={() => router.back()} className="mb-8">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-            {/* Left Column: Image */}
             <div className="relative w-full h-96 rounded-lg overflow-hidden">
               <Image
-                src={listing.imageUrl}
+                src={listing.imageUrl || 'https://placehold.co/600x400/purple/white?text=Food'}
                 alt={listing.foodName}
                 fill
                 className="object-cover"
-                data-ai-hint={listing.imageHint}
+                data-ai-hint="food item"
               />
             </div>
 
-            {/* Right Column: Details */}
             <div className="flex flex-col gap-6">
               <div>
-                <Badge variant="secondary">{listing.provider}</Badge>
+                <Badge variant="secondary">{listing.foodType}</Badge>
                 <h1 className="text-4xl font-bold tracking-tighter mt-2">
                   {listing.foodName}
                 </h1>
                 <div className="flex items-center gap-4 text-muted-foreground text-sm mt-2">
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4" />
-                    <span>{listing.address} ({listing.distance} miles)</span>
+                    <span>{listing.address}</span>
                   </div>
-                  <span>Posted {listing.postedAt}</span>
+                  <span>Posted {new Date(listing.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
 
@@ -148,12 +192,20 @@ export default function ListingDetailPage({
                 <CardContent className="grid gap-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Quantity</span>
-                    <span>{listing.quantity} loaves</span>
+                    <span>{listing.quantity}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Weight</span>
-                    <span>Approx. 1.5 lbs per loaf</span>
-                  </div>
+                   {listing.weight && (
+                     <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Weight</span>
+                        <span>{listing.weight}</span>
+                    </div>
+                   )}
+                   {listing.volume && (
+                     <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Volume</span>
+                        <span>{listing.volume}</span>
+                    </div>
+                   )}
                 </CardContent>
               </Card>
 
@@ -184,7 +236,6 @@ export default function ListingDetailPage({
             </div>
           </div>
           
-          {/* Status Section */}
           {reservationStatus === 'awaiting' && (
               <Alert variant="default" className="mt-8">
                   <Clock className="h-4 w-4" />
@@ -195,14 +246,12 @@ export default function ListingDetailPage({
               </Alert>
           )}
 
-          {/* Pickup and Navigation Section */}
           {reservationStatus === 'approved' && pickupOption && (
             <div className="mt-12">
                <h2 className="text-2xl font-semibold tracking-tight mb-6">
                 Pickup and Navigation
               </h2>
               <div className="grid md:grid-cols-2 gap-8">
-                {/* Pickup instructions */}
                 <div>
                    {pickupOption === 'otp' && (
                       <Card>
@@ -239,7 +288,6 @@ export default function ListingDetailPage({
                       </Card>
                    )}
                 </div>
-                 {/* Map */}
                 <div>
                   <Card>
                     <CardHeader className="flex-row items-center gap-4">
@@ -264,65 +312,14 @@ export default function ListingDetailPage({
                   <AlertTitle>Pickup Complete!</AlertTitle>
                   <AlertDescription>
                       You have successfully received the food. Thank you for helping reduce waste!
-                  </AlertDescription>
+                  </Aler tDescription>
               </Alert>
           )}
-
-          {/* AI Features Section (only show if unreserved or awaiting) */}
-          {(reservationStatus === 'unreserved' || reservationStatus === 'awaiting') && (
-            <div className="mt-12">
-              <h2 className="text-2xl font-semibold tracking-tight mb-6">
-                AI-Powered Insights
-              </h2>
-              <div className="grid lg:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader className="flex-row items-center gap-4 space-y-0">
-                    <Leaf className="h-8 w-8 text-primary" />
-                    <CardTitle>Freshness Predictor</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-green-500">
-                      {listing.freshness}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Based on image analysis and posting time.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex-row items-center gap-4 space-y-0">
-                    <Flame className="h-8 w-8 text-primary" />
-                    <CardTitle>Macro Info (Approx.)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="font-semibold">{listing.macros}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Estimated nutritional information per serving.
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex-row items-center gap-4 space-y-0">
-                    <BrainCircuit className="h-8 w-8 text-primary" />
-                    <CardTitle>Quick Recipes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="list-disc list-inside text-sm space-y-1">
-                      {listing.recipes.map((recipe, i) => (
-                        <li key={i}>{recipe}</li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
         </div>
       </main>
       <AppFooter />
     </div>
   );
 }
+
+    
