@@ -24,6 +24,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,13 +95,12 @@ export default function ListingDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
   const { toast } = useToast();
   const router = useRouter();
   const { getListingById, updateListing, isInitialized, getOtpForListing } = useListings();
   const { user, loading: authLoading } = useAuth();
   
-  const listing = getListingById(id);
+  const listing = getListingById(params.id);
 
   const [reservationStatus, setReservationStatus] = useState<ReservationStatus>('unreserved');
   const [pickupOption, setPickupOption] = useState<PickupOption>(null); 
@@ -499,3 +499,5 @@ export default function ListingDetailPage({
     </div>
   );
 }
+
+    
