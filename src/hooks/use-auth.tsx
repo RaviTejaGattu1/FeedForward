@@ -9,7 +9,6 @@ import {
   ReactNode,
   useCallback,
 } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
 
 // This is a mock user type. In a real app, this would be more complex.
 export type User = {
@@ -35,7 +34,9 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => ({} as User),
 });
 
-const getMockUsers = () => {
+// --- Mock User Database in localStorage ---
+
+const getMockUsers = (): { [email: string]: User } => {
   if (typeof window === 'undefined') {
     return {
       'admin@feedforward.com': {
@@ -58,11 +59,12 @@ const getMockUsers = () => {
 };
 
 const setMockUsers = (users: { [email: string]: User }) => {
-    if (typeof window !== 'undefined') {
-        localStorage.setItem('mockUsers', JSON.stringify(users));
-    }
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('mockUsers', JSON.stringify(users));
+  }
 };
 
+// --- Auth Provider ---
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -71,15 +73,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Check for a session in localStorage
     try {
-      const storedUser = localStorage.getItem('mockUserSession');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      const sessionEmail = localStorage.getItem('mockUserSessionEmail');
+      if (sessionEmail) {
+        const mockUsers = getMockUsers();
+        const loggedInUser = mockUsers[sessionEmail];
+        if (loggedInUser) {
+          setUser(loggedInUser);
+        } else {
+            // Clean up session if user doesn't exist in our mock DB
+            localStorage.removeItem('mockUserSessionEmail');
+        }
       }
     } catch (e) {
-      console.error("Failed to parse user session from localStorage", e);
-      localStorage.removeItem('mockUserSession');
+      console.error('Failed to initialize user session from localStorage', e);
+      localStorage.removeItem('mockUserSessionEmail');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   }, []);
 
@@ -90,7 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setTimeout(() => {
         if (mockUsers[email]) {
           const loggedInUser = mockUsers[email];
-          localStorage.setItem('mockUserSession', JSON.stringify(loggedInUser));
+          localStorage.setItem('mockUserSessionEmail', email);
           setUser(loggedInUser);
           setLoading(false);
           resolve(loggedInUser);
@@ -106,39 +115,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     return new Promise<void>((resolve) => {
       setTimeout(() => {
-        localStorage.removeItem('mockUserSession');
+        localStorage.removeItem('mockUserSessionEmail');
         setUser(null);
         setLoading(false);
         resolve();
       }, 300);
     });
   }, []);
-  
+
   const register = useCallback(async (name: string, email: string) => {
     setLoading(true);
-     return new Promise<User>((resolve, reject) => {
+    return new Promise<User>((resolve, reject) => {
       setTimeout(() => {
-          const mockUsers = getMockUsers();
-          if (mockUsers[email]) {
-            setLoading(false);
-            return reject(new Error('Email already in use'));
-          }
-          const newUser: User = {
-              uid: `user-${Date.now()}`,
-              displayName: name,
-              email: email,
-          };
-          mockUsers[email] = newUser;
-          setMockUsers(mockUsers);
-          
-          localStorage.setItem('mockUserSession', JSON.stringify(newUser));
-          setUser(newUser);
+        const mockUsers = getMockUsers();
+        if (mockUsers[email]) {
           setLoading(false);
-          resolve(newUser);
+          return reject(new Error('Email already in use'));
+        }
+        const newUser: User = {
+          uid: `user-${Date.now()}`,
+          displayName: name,
+          email: email,
+        };
+        const updatedUsers = { ...mockUsers, [email]: newUser };
+        setMockUsers(updatedUsers);
+
+        localStorage.setItem('mockUserSessionEmail', email);
+        setUser(newUser);
+        setLoading(false);
+        resolve(newUser);
       }, 500);
     });
   }, []);
-
 
   return (
     <AuthContext.Provider value={{ user, loading, signIn, signOut, register }}>
