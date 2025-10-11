@@ -1,3 +1,4 @@
+
 import type { SVGProps } from 'react';
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
@@ -5,24 +6,14 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
     <svg
       width="32"
       height="32"
-      viewBox="0 0 32 32"
+      viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
       <path
-        d="M6 2L18 16L6 30"
-        stroke="hsl(var(--accent))"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 2L26 16L14 30"
-        stroke="hsl(var(--primary))"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M19.5 12.5C19.5 10.29 21.29 8.5 23.5 8.5V6.5C20.19 6.5 17.5 9.19 17.5 12.5V13.5C17.5 14.6 18.4 15.5 19.5 15.5V17.5C16.19 17.5 13.5 14.81 13.5 11.5C13.5 9.49 14.73 7.74 16.5 6.82V4.75C13.24 5.68 11 8.58 11 12.13V13.5C11 14.6 11.9 15.5 13 15.5V17.5C9.69 17.5 7 14.81 7 11.5C7 8.19 9.69 5.5 13 5.5H13.5V2.5H11C6.03 2.5 2 6.53 2 11.5C2 15.54 4.56 18.9 8.5 19.86V17.8C5.9 16.92 4 14.41 4 11.5C4 8.74 6.24 6.5 9 6.5H9.5V11.5C9.5 15.64 12.86 19 17 19V17.5C16.17 17.5 15.5 16.83 15.5 16V14.5C15.5 13.67 16.17 13 17 13V11.5C17 10.67 16.33 10 15.5 10H14.5V7.5H17.5V11.5C18.33 11.5 19 10.83 19 10V8.5C19 7.67 18.33 7 17.5 7H16.5V6.5H19.5V12.5Z"
+        fill="hsl(var(--primary))"
       />
     </svg>
   );
