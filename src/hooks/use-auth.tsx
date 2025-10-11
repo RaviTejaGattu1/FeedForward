@@ -30,7 +30,6 @@ const initialServerUsers: { [email: string]: User } = {
 };
 
 const userStore = createLocalStorageStore<{ [email: string]: User }>('mockUsers', initialServerUsers);
-const listingsStore = createLocalStorageStore<Listing[]>('mockListings', []);
 
 
 // --- Auth Context and Provider ---
@@ -40,7 +39,6 @@ type AuthContextType = {
   signIn: (email: string) => Promise<User>;
   signOut: () => Promise<void>;
   register: (name: string, email: string) => Promise<User>;
-  getActivePickupsForUser: () => Listing[];
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -49,7 +47,6 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({} as User),
   signOut: async () => {},
   register: async () => ({} as User),
-  getActivePickupsForUser: () => [],
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -60,7 +57,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const allUsers = useSyncExternalStore(userStore.subscribe, userStore.getSnapshot, userStore.getServerSnapshot);
-  const allListings = useSyncExternalStore(listingsStore.subscribe, listingsStore.getSnapshot, listingsStore.getServerSnapshot);
 
   useEffect(() => {
     setLoading(false);
@@ -124,16 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const getActivePickupsForUser = useCallback(() => {
-      if (!user) return [];
-      // This is a read-only operation directly on the latest listings data
-      // It does not trigger re-renders in the same way as useListings()
-      const listings = listingsStore.getSnapshot();
-      return listings.filter(l => l.claimedBy === user.uid && l.status === 'approved');
-  }, [user]);
-
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut, register, getActivePickupsForUser }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, register }}>
       {children}
     </AuthContext.Provider>
   );

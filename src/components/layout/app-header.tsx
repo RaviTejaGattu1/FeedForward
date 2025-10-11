@@ -18,25 +18,31 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import type { Listing } from '@/hooks/use-listings';
 import { useEffect, useState } from 'react';
+import { useListings } from '@/hooks/use-listings';
 
 export function AppHeader() {
-  const { user, signOut, getActivePickupsForUser } = useAuth();
+  const { user, signOut } = useAuth();
+  const { listings } = useListings(); // Get real-time listings data
   const router = useRouter();
   const [activePickups, setActivePickups] = useState<Listing[]>([]);
 
   useEffect(() => {
     if (user) {
-      const pickups = getActivePickupsForUser();
+      // Filter the real-time listings data
+      const pickups = listings.filter(
+        (l) => l.claimedBy === user.uid && l.status === 'approved'
+      );
       setActivePickups(pickups);
     } else {
       setActivePickups([]);
     }
-  }, [user, getActivePickupsForUser]);
+    // Add `listings` to the dependency array to react to changes
+  }, [user, listings]);
 
   const handleSignOut = async () => {
     await signOut();
     router.push('/');
-    router.refresh(); 
+    router.refresh();
   };
 
   return (
