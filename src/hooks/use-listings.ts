@@ -103,7 +103,10 @@ const getInitialListings = (): Listing[] => {
 };
 
 // Initialize the store from localStorage.
-listingsStore = getInitialListings();
+if (typeof window !== 'undefined') {
+    listingsStore = getInitialListings();
+}
+
 
 // Function to update the store and notify listeners.
 const emitChange = () => {

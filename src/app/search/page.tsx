@@ -77,11 +77,9 @@ export default function SearchPage() {
     setError(null);
     setFilteredListings([]); // Clear previous results
 
-    const activeListings = allListings.filter(l => l.status === 'active');
-
     if (!location) {
         // If search is cleared, show all active listings without distance.
-        setFilteredListings(activeListings);
+        setFilteredListings(allListings.filter(l => l.status === 'active'));
         setIsSearching(false);
         setHasSearched(false); // Reset search state
         return;
@@ -95,6 +93,8 @@ export default function SearchPage() {
              return;
         }
         
+        const activeListings = allListings.filter(l => l.status === 'active');
+
         const listingsWithDistance: ListingWithDistance[] = activeListings
           .filter(listing => listing.latitude && listing.longitude) // Ensure listings have coordinates
           .map(listing => {
