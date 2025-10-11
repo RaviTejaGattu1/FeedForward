@@ -200,11 +200,28 @@ export default function MyListingsPage() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <div className="grid grid-cols-2 gap-4 py-4">
-                            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => handleApprove(listing.id, 'otp')}>
-                                <KeyRound className="h-6 w-6" />
-                                <span>Connect via OTP</span>
-                            </Button>
-                            <AlertDialog>
+                           <AlertDialog>
+                             <AlertDialogTrigger asChild>
+                                <Button variant="outline" className="h-24 flex-col gap-2">
+                                  <KeyRound className="h-6 w-6" />
+                                  <span>Connect via OTP</span>
+                                </Button>
+                             </AlertDialogTrigger>
+                             <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Approve with OTP?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will generate a one-time password for the recipient to verify the pickup.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleApprove(listing.id, 'otp')}>Confirm</AlertDialogAction>
+                                </AlertDialogFooter>
+                             </AlertDialogContent>
+                           </AlertDialog>
+                           
+                           <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="outline" className="h-24 flex-col gap-2">
                                         <MessageSquare className="h-6 w-6" />
@@ -256,10 +273,6 @@ export default function MyListingsPage() {
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Delivered
                     </Button>
                 </div>
-            ) : listing.status === 'receiver incoming' ? (
-                <Button variant="outline" size="sm" onClick={() => handleDelivered(listing.id)}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" /> Delivered Successfully
-                </Button>
             ) : (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -389,3 +402,5 @@ export default function MyListingsPage() {
     </div>
   );
 }
+
+    
