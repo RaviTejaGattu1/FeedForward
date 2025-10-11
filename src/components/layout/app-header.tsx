@@ -11,22 +11,32 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { UserCircle, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { UserCircle, LogOut, LayoutDashboard, User, Truck, ChevronDown } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import type { Listing } from '@/hooks/use-listings';
+import { useEffect, useState } from 'react';
 
 export function AppHeader() {
-  const { user } = useAuth();
+  const { user, signOut, getActivePickupsForUser } = useAuth();
   const router = useRouter();
+  const [activePickups, setActivePickups] = useState<Listing[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      const pickups = getActivePickupsForUser();
+      setActivePickups(pickups);
+    } else {
+      setActivePickups([]);
+    }
+  }, [user, getActivePickupsForUser]);
 
   const handleSignOut = async () => {
-    // In a real app with a backend, you'd call a sign-out endpoint.
-    // For this mock app, we just clear the session.
-    sessionStorage.removeItem('mockUserSessionEmail');
+    await signOut();
     router.push('/');
-    router.refresh(); // Force a refresh to update the user state everywhere
+    router.refresh(); 
   };
 
   return (
@@ -40,6 +50,36 @@ export function AppHeader() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
+            {user && activePickups.length > 0 && (
+                 <>
+                {activePickups.length === 1 ? (
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/listings/${activePickups[0].id}`)}>
+                    <Truck className="mr-2 h-4 w-4" />
+                    My Pickup
+                  </Button>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Truck className="mr-2 h-4 w-4" />
+                        My Pickups ({activePickups.length})
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Active Pickups</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {activePickups.map((pickup) => (
+                        <DropdownMenuItem key={pickup.id} onClick={() => router.push(`/listings/${pickup.id}`)}>
+                          {pickup.foodName}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </>
+            )}
+
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
