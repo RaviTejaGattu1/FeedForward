@@ -91,7 +91,7 @@ function ListingDetailSkeleton() {
 }
 
 export default function ListingDetailPage({
-  params,
+  params: { id },
 }: {
   params: { id: string };
 }) {
@@ -100,7 +100,7 @@ export default function ListingDetailPage({
   const { getListingById, updateListing, isInitialized, getOtpForListing } = useListings();
   const { user, loading: authLoading } = useAuth();
   
-  const listing = getListingById(params.id);
+  const listing = getListingById(id);
 
   const [reservationStatus, setReservationStatus] = useState<ReservationStatus>('unreserved');
   const [pickupOption, setPickupOption] = useState<PickupOption>(null); 
@@ -499,5 +499,3 @@ export default function ListingDetailPage({
     </div>
   );
 }
-
-    
