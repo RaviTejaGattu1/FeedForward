@@ -312,7 +312,7 @@ export default function ListingDetailPage({
                   <AlertTitle>Pickup Complete!</AlertTitle>
                   <AlertDescription>
                       You have successfully received the food. Thank you for helping reduce waste!
-                  </Aler tDescription>
+                  </AlertDescription>
               </Alert>
           )}
         </div>
@@ -321,5 +321,3 @@ export default function ListingDetailPage({
     </div>
   );
 }
-
-    
