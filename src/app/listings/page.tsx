@@ -320,7 +320,8 @@ export default function MyListingsPage() {
                 </TableBody>
               </Table>
             </CardContent>
-           <Card>
+          </Card>
+          <Card>
              <CardHeader>
                 <CardTitle>Completed Listings</CardTitle>
                 <CardDescription>
