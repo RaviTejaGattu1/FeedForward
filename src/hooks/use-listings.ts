@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import { useSyncExternalStore, useCallback, useState, useEffect } from 'react';
 import { useAuth } from './use-auth';
 import { getCoordsFromAddress } from '@/lib/geocoding';
 
@@ -78,44 +78,57 @@ const initialServerListings: Listing[] = [
     },
 ];
 
+let memoryState: Listing[] | null = null;
+const listeners: Set<() => void> = new Set();
+
 const listingsStore = {
   get: (): Listing[] => {
-    if (typeof window === 'undefined') {
-      return initialServerListings;
+    if (memoryState === null) {
+      if (typeof window === 'undefined') {
+        // On the server, always return the initial hardcoded list.
+        return initialServerListings;
+      }
+      // On the client, read from localStorage on the first call.
+      try {
+        const item = localStorage.getItem('mockListings');
+        memoryState = item ? JSON.parse(item) : initialServerListings;
+      } catch (e) {
+        console.error('Failed to parse listings from localStorage', e);
+        memoryState = initialServerListings;
+      }
     }
-    try {
-      const item = localStorage.getItem('mockListings');
-      return item ? JSON.parse(item) : initialServerListings;
-    } catch (e) {
-      console.error('Failed to parse listings from localStorage', e);
-      return initialServerListings;
-    }
+    return memoryState;
   },
   set: (value: Listing[]) => {
+    memoryState = value;
     try {
       localStorage.setItem('mockListings', JSON.stringify(value));
-      // Dispatch a custom event to notify other instances of the store in the same tab
-      window.dispatchEvent(new Event('local-storage'));
     } catch (e) {
       console.error('Failed to set listings in localStorage', e);
     }
+    // Notify all listeners that the data has changed.
+    listeners.forEach((l) => l());
   },
-  subscribe: (callback: () => void) => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'mockListings') {
-        callback();
-      }
-    };
-    // For changes in other tabs
-    window.addEventListener('storage', handleStorageChange);
-    // For changes in the same tab
-    window.addEventListener('local-storage', callback);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('local-storage', callback);
-    };
+  subscribe: (callback: () => void): (() => void) => {
+    listeners.add(callback);
+    return () => listeners.delete(callback);
   },
 };
+
+// Listen for changes in other tabs
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event: StorageEvent) => {
+    if (event.key === 'mockListings' && event.newValue) {
+      try {
+        // Update the in-memory state and notify listeners.
+        listingsStore.set(JSON.parse(event.newValue));
+      } catch(e) {
+        console.error('Failed to parse listings from storage event', e);
+      }
+    }
+  });
+}
+
 
 const listingsApi = {
   addListing: (newListing: Listing) => {
@@ -222,3 +235,5 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     getListingById,
   };
 }
+
+    
