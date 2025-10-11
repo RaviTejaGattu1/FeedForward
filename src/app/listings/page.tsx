@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -73,6 +73,13 @@ export default function MyListingsPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+
   const handleApprove = (listingId: string, pickupOption: 'otp' | 'leave') => {
     updateListing(listingId, { status: 'approved' });
     toast({
@@ -100,7 +107,7 @@ export default function MyListingsPage() {
     router.push(`/provide?edit=${listingId}`);
   };
 
-  if (loading) {
+  if (loading || !user) {
     return (
        <div className="flex min-h-screen w-full flex-col">
         <AppHeader />
@@ -123,11 +130,6 @@ export default function MyListingsPage() {
         <AppFooter />
       </div>
     );
-  }
-  
-  if (!user && !loading) {
-    router.push('/login');
-    return null;
   }
 
   return (
