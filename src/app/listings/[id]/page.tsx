@@ -111,6 +111,9 @@ export default function ListingDetailPage({
   
   const destination = (listing?.latitude && listing?.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing?.address;
 
+  const [otp, setOtp] = useState('123456');
+  const [displayOtp, setDisplayOtp] = useState('------');
+
   const { isLoaded: isMapLoaded } = useLoadScript(
     googleMapsApiKey
       ? {
@@ -120,7 +123,6 @@ export default function ListingDetailPage({
       : { skip: true }
   );
   
-  // Ref for debouncing start location input
   const directionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
@@ -130,7 +132,6 @@ export default function ListingDetailPage({
             setReservationStatus('awaiting');
         } else if (listing.status === 'approved') {
             setReservationStatus('approved');
-            // This needs to be stored in the listing in a real app
             setPickupOption('otp'); 
         } else if (listing.status === 'delivered') {
             setReservationStatus('completed');
@@ -138,7 +139,35 @@ export default function ListingDetailPage({
     }
   }, [listing]);
 
-  // Get user's location when pickup is approved, default to last search location
+  useEffect(() => {
+    if (reservationStatus === 'approved' && pickupOption === 'otp') {
+      const finalOtp = String(Math.floor(100000 + Math.random() * 900000));
+      setOtp(finalOtp);
+
+      let revealCount = 0;
+      const interval = setInterval(() => {
+        let currentDisplay = '';
+        for (let i = 0; i < 6; i++) {
+          if (i < revealCount) {
+            currentDisplay += finalOtp[i];
+          } else {
+            currentDisplay += String(Math.floor(Math.random() * 10));
+          }
+        }
+        setDisplayOtp(currentDisplay);
+        
+        if (revealCount < 6) {
+          revealCount++;
+        } else {
+           clearInterval(interval);
+           setDisplayOtp(finalOtp);
+        }
+      }, 150);
+
+      return () => clearInterval(interval);
+    }
+  }, [reservationStatus, pickupOption]);
+
   useEffect(() => {
     if (reservationStatus === 'approved') {
       const lastSearch = localStorage.getItem('lastSearchLocation');
@@ -171,7 +200,6 @@ export default function ListingDetailPage({
     }
   }, [reservationStatus, toast]);
 
-  // Effect to update directions when start location or destination changes
   useEffect(() => {
      if (isMapLoaded && startLocation && destination) {
         if (directionsTimeoutRef.current) {
@@ -207,7 +235,7 @@ export default function ListingDetailPage({
             console.error("Error getting directions:", error);
             setDirections(null);
           }
-        }, 1000); // Debounce for 1 second
+        }, 1000); 
      }
 
       return () => {
@@ -382,7 +410,7 @@ export default function ListingDetailPage({
                             </p>
                             <div className="bg-muted p-4 rounded-md text-center">
                                 <p className="text-sm">Your OTP</p>
-                                <p className="text-4xl font-bold tracking-widest">123456</p>
+                                <p className="text-4xl font-bold tracking-widest font-mono">{displayOtp}</p>
                             </div>
                         </CardContent>
                       </Card>
