@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useLoadScript } from '@react-google-maps/api';
 import { LocationInput } from '@/components/location-input';
 import { type Listing, useListings } from '@/hooks/use-listings';
@@ -76,6 +75,7 @@ export default function SearchPage() {
     setIsSearching(true);
     setHasSearched(true);
     setError(null);
+    setFilteredListings([]); // Clear previous results
 
     const activeListings = allListings.filter(l => l.status === 'active');
 
@@ -83,6 +83,7 @@ export default function SearchPage() {
         // If search is cleared, show all active listings without distance.
         setFilteredListings(activeListings);
         setIsSearching(false);
+        setHasSearched(false); // Reset search state
         return;
     }
 
@@ -90,7 +91,6 @@ export default function SearchPage() {
         const userCoords = await getCoordsFromAddress(location);
         if (!userCoords) {
              setError("Could not find the location specified. Please try a different address.");
-             setFilteredListings([]);
              setIsSearching(false);
              return;
         }
@@ -118,7 +118,6 @@ export default function SearchPage() {
     } catch (e) {
         console.error("Error during search:", e);
         setError("An unexpected error occurred during the search.");
-        setFilteredListings([]);
     } finally {
         setIsSearching(false);
     }
@@ -228,7 +227,7 @@ export default function SearchPage() {
                     >
                       <div className="relative w-full h-48">
                         <Image
-                          src={listing.imageUrl || PlaceHolderImages.find(img => img.id === 'beans')?.imageUrl || 'https://placehold.co/600x400'}
+                          src={listing.imageUrl || 'https://placehold.co/600x400'}
                           alt={listing.foodName}
                           fill
                           className="object-cover"
