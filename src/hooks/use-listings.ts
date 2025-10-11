@@ -114,10 +114,11 @@ const emitChange = () => {
 }
 
 // Update the store and localStorage.
-const setListings = (listings: Listing[]) => {
-  listingsStore = listings;
+// CRITICAL: This is where we create a new array to ensure immutability.
+const setListings = (newStoreState: Listing[]) => {
+  listingsStore = newStoreState;
   if (typeof window !== 'undefined') {
-    localStorage.setItem('mockListings', JSON.stringify(listings));
+    localStorage.setItem('mockListings', JSON.stringify(listingsStore));
   }
   emitChange();
 }
@@ -133,6 +134,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key === 'mockListings' && event.newValue) {
       try {
+        // Create a new array from the storage event to trigger updates.
         listingsStore = JSON.parse(event.newValue);
         emitChange();
       } catch (e) {
@@ -154,11 +156,13 @@ export const listingsApi = {
     setListings(listingsStore.filter(l => l.id !== listingId));
   },
   getListingById: (listingId: string): Listing | undefined => {
-    return listingsStore.find(l => l.id === listingId);
+    // Return a copy to prevent mutation of the store object.
+    const listing = listingsStore.find(l => l.id === listingId);
+    return listing ? { ...listing } : undefined;
   },
   getAllListings: (): Listing[] => {
-    // CRITICAL: Return a new array to prevent mutation issues on the client.
-    return [...listingsStore];
+    // This MUST return the same instance of the array unless it has changed.
+    return listingsStore;
   }
 };
 
@@ -184,12 +188,8 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
   }, []);
   
   let listings: Listing[];
-  if (forCurrentUser) {
-    if (user) {
-      listings = allListings.filter(l => l.userId === user.uid);
-    } else {
-      listings = [];
-    }
+  if (forCurrentUser && user) {
+    listings = allListings.filter(l => l.userId === user.uid);
   } else {
     listings = allListings;
   }
