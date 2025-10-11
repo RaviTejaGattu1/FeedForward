@@ -157,7 +157,8 @@ export const listingsApi = {
     return listingsStore.find(l => l.id === listingId);
   },
   getAllListings: (): Listing[] => {
-    return listingsStore;
+    // CRITICAL: Return a new array to prevent mutation issues.
+    return [...listingsStore];
   }
 };
 
@@ -182,10 +183,10 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     if (user) {
       listings = allListings.filter(l => l.userId === user.uid);
     } else {
-      listings = []; // If no user, there are no "current user" listings.
+      listings = [];
     }
   } else {
-    listings = allListings; // For public pages, always show all listings.
+    listings = allListings;
   }
   
   const addListing = useCallback(
