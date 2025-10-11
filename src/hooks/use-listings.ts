@@ -4,6 +4,7 @@
 import { useSyncExternalStore, useCallback, useState, useEffect } from 'react';
 import { useAuth } from './use-auth';
 import { getCoordsFromAddress } from '@/lib/geocoding';
+import { createLocalStorageStore } from '@/lib/create-local-storage-store';
 
 export type ListingStatus =
   | 'active'
@@ -31,8 +32,6 @@ export type Listing = {
 
 
 // --- Store Implementation ---
-// This is the single source of truth for our listings data, synchronized with localStorage.
-
 const initialServerListings: Listing[] = [
     {
         id: 'mock-1',
@@ -78,86 +77,14 @@ const initialServerListings: Listing[] = [
     },
 ];
 
-let memoryState: Listing[] | null = null;
-const listeners: Set<() => void> = new Set();
-
-const listingsStore = {
-  get: (): Listing[] => {
-    if (memoryState === null) {
-      if (typeof window === 'undefined') {
-        // On the server, always return the initial hardcoded list.
-        return initialServerListings;
-      }
-      // On the client, read from localStorage on the first call.
-      try {
-        const item = localStorage.getItem('mockListings');
-        memoryState = item ? JSON.parse(item) : initialServerListings;
-      } catch (e) {
-        console.error('Failed to parse listings from localStorage', e);
-        memoryState = initialServerListings;
-      }
-    }
-    return memoryState;
-  },
-  set: (value: Listing[]) => {
-    memoryState = value;
-    try {
-      localStorage.setItem('mockListings', JSON.stringify(value));
-    } catch (e) {
-      console.error('Failed to set listings in localStorage', e);
-    }
-    // Notify all listeners that the data has changed.
-    listeners.forEach((l) => l());
-  },
-  subscribe: (callback: () => void): (() => void) => {
-    listeners.add(callback);
-    return () => listeners.delete(callback);
-  },
-};
-
-// Listen for changes in other tabs
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event: StorageEvent) => {
-    if (event.key === 'mockListings' && event.newValue) {
-      try {
-        // Update the in-memory state and notify listeners.
-        listingsStore.set(JSON.parse(event.newValue));
-      } catch(e) {
-        console.error('Failed to parse listings from storage event', e);
-      }
-    }
-  });
-}
-
-
-const listingsApi = {
-  addListing: (newListing: Listing) => {
-    const currentListings = listingsStore.get();
-    listingsStore.set([...currentListings, newListing]);
-  },
-  updateListing: (listingId: string, updates: Partial<Listing>) => {
-    const currentListings = listingsStore.get();
-    listingsStore.set(currentListings.map(l => l.id === listingId ? { ...l, ...updates } : l));
-  },
-  removeListing: (listingId: string) => {
-    const currentListings = listingsStore.get();
-    listingsStore.set(currentListings.filter(l => l.id !== listingId));
-  },
-  getListingById: (listingId: string): Listing | undefined => {
-    return listingsStore.get().find(l => l.id === listingId);
-  },
-  getAllListings: (): Listing[] => {
-    return listingsStore.get();
-  }
-};
-
+const listingsStore = createLocalStorageStore<Listing[]>('mockListings', initialServerListings);
 
 // --- React Hook ---
 export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const { forCurrentUser = false } = options;
   const { user } = useAuth();
   
-  const allListings = useSyncExternalStore(listingsStore.subscribe, listingsStore.get, () => initialServerListings);
+  const allListings = useSyncExternalStore(listingsStore.subscribe, listingsStore.getSnapshot, listingsStore.getServerSnapshot);
 
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -202,28 +129,32 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
           claimedBy: null,
           createdAt: new Date().toISOString(),
       }
-      
-      listingsApi.addListing(newListing);
+      const currentListings = listingsStore.getSnapshot();
+      listingsStore.setState([...currentListings, newListing]);
     },
     [user]
   );
 
   const updateListing = useCallback(
     async (listingId: string, updates: Partial<Omit<Listing, 'id' | 'userId' | 'createdAt'>>) => {
-        listingsApi.updateListing(listingId, updates);
+        const currentListings = listingsStore.getSnapshot();
+        const updatedListings = currentListings.map(l => l.id === listingId ? { ...l, ...updates } : l);
+        listingsStore.setState(updatedListings);
     },
     []
   );
 
   const removeListing = useCallback(
     async (listingId: string) => {
-        listingsApi.removeListing(listingId);
+        const currentListings = listingsStore.getSnapshot();
+        const updatedListings = currentListings.filter(l => l.id !== listingId);
+        listingsStore.setState(updatedListings);
     },
     []
   );
   
   const getListingById = useCallback((listingId: string) => {
-    return listingsApi.getListingById(listingId);
+    return listingsStore.getSnapshot().find(l => l.id === listingId);
   }, []);
 
   return {
@@ -235,5 +166,3 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     getListingById,
   };
 }
-
-    
