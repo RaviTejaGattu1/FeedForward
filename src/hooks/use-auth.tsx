@@ -94,9 +94,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = useCallback(async (email: string) => {
     setLoading(true);
-    const mockUsers = getMockUsers();
     return new Promise<User>((resolve, reject) => {
       setTimeout(() => {
+        const mockUsers = getMockUsers();
         if (mockUsers[email]) {
           const loggedInUser = mockUsers[email];
           localStorage.setItem('mockUserSessionEmail', email);
@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
         };
         const updatedUsers = { ...mockUsers, [email]: newUser };
-        setMockUsers(updatedUsers);
+        setMockUsers(updatedUsers); // THIS LINE WAS MISSING
 
         localStorage.setItem('mockUserSessionEmail', email);
         setUser(newUser);
