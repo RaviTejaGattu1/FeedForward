@@ -28,6 +28,7 @@ import { LocationInput } from '@/components/location-input';
 import { useListings } from '@/hooks/use-listings';
 import { useAuth } from '@/hooks/use-auth';
 import Link from 'next/link';
+import { Typewriter } from '@/components/ui/typewriter';
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -388,7 +389,9 @@ export default function ProvidePage() {
                   Recipe Idea!
                 </AlertTitle>
                 <AlertDescription className="flex flex-col gap-4">
-                  <Balancer>{recipeSuggestion}</Balancer>
+                  <Balancer>
+                    <Typewriter text={recipeSuggestion} />
+                  </Balancer>
                    {!isSuggestionAcknowledged && (
                     <Button
                       size="sm"
@@ -430,5 +433,3 @@ export default function ProvidePage() {
     </div>
   );
 }
-
-    

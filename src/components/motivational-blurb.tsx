@@ -5,9 +5,11 @@ import { generateHomepageContent } from '@/ai/flows/homepage-statistics-blurb';
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
+import { Typewriter } from './ui/typewriter';
 
 function Blurb() {
-  const [blurb, setBlurb] = useState('Join us in the fight against hunger. Every contribution makes a difference.');
+  const [blurb, setBlurb] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stats = {
@@ -24,10 +26,18 @@ function Blurb() {
         // Don't show an error to the user, just use the default blurb.
         // We already show an API key error on the page if that's the issue.
         console.error('Failed to generate motivational blurb:', e);
+        setBlurb('Join us in the fight against hunger. Every contribution makes a difference.');
+      })
+      .finally(() => {
+          setLoading(false);
       });
   }, []);
 
-  return <>{blurb}</>;
+  if (loading) {
+      return <Skeleton className="h-7 w-[600px] mx-auto" />;
+  }
+
+  return <Typewriter text={blurb} />;
 }
 
 

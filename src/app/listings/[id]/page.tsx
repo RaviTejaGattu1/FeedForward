@@ -49,6 +49,7 @@ import {
   useLoadScript,
 } from '@react-google-maps/api';
 import { getCoordsFromAddress } from '@/lib/geocoding';
+import { JackpotTypewriter } from '@/components/ui/typewriter';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 type PickupOption = 'otp' | 'leave' | null;
@@ -112,7 +113,6 @@ export default function ListingDetailPage({
   const destination = (listing?.latitude && listing?.longitude) ? { lat: listing.latitude, lng: listing.longitude } : listing?.address;
 
   const [otp, setOtp] = useState('123456');
-  const [displayOtp, setDisplayOtp] = useState('------');
 
   const { isLoaded: isMapLoaded } = useLoadScript(
     googleMapsApiKey
@@ -143,28 +143,6 @@ export default function ListingDetailPage({
     if (reservationStatus === 'approved' && pickupOption === 'otp') {
       const finalOtp = String(Math.floor(100000 + Math.random() * 900000));
       setOtp(finalOtp);
-
-      let revealCount = 0;
-      const interval = setInterval(() => {
-        let currentDisplay = '';
-        for (let i = 0; i < 6; i++) {
-          if (i < revealCount) {
-            currentDisplay += finalOtp[i];
-          } else {
-            currentDisplay += String(Math.floor(Math.random() * 10));
-          }
-        }
-        setDisplayOtp(currentDisplay);
-        
-        if (revealCount < 6) {
-          revealCount++;
-        } else {
-           clearInterval(interval);
-           setDisplayOtp(finalOtp);
-        }
-      }, 150);
-
-      return () => clearInterval(interval);
     }
   }, [reservationStatus, pickupOption]);
 
@@ -410,7 +388,9 @@ export default function ListingDetailPage({
                             </p>
                             <div className="bg-muted p-4 rounded-md text-center">
                                 <p className="text-sm">Your OTP</p>
-                                <p className="text-4xl font-bold tracking-widest font-mono">{displayOtp}</p>
+                                <p className="text-4xl">
+                                  <JackpotTypewriter text={otp} />
+                                </p>
                             </div>
                         </CardContent>
                       </Card>

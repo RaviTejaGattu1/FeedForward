@@ -58,6 +58,7 @@ import { useListings, type Listing, type ListingStatus } from '@/hooks/use-listi
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
+import { JackpotTypewriter } from '@/components/ui/typewriter';
 
 const statusStyles: { [key in ListingStatus]: string } = {
   active: 'bg-green-500/20 text-green-700 border-green-500/40',
@@ -69,39 +70,18 @@ const statusStyles: { [key in ListingStatus]: string } = {
 
 function OtpDisplay({ listingId }: { listingId: string }) {
     const [otp, setOtp] = useState('');
-    const [displayOtp, setDisplayOtp] = useState('------');
 
     useEffect(() => {
         const finalOtp = String(Math.floor(100000 + Math.random() * 900000));
         setOtp(finalOtp);
-
-        let revealCount = 0;
-        const interval = setInterval(() => {
-            let currentDisplay = '';
-            for (let i = 0; i < 6; i++) {
-                if (i < revealCount) {
-                    currentDisplay += finalOtp[i];
-                } else {
-                    currentDisplay += String(Math.floor(Math.random() * 10));
-                }
-            }
-            setDisplayOtp(currentDisplay);
-            
-            if (revealCount < 6) {
-                revealCount++;
-            } else {
-                clearInterval(interval);
-                setDisplayOtp(finalOtp);
-            }
-        }, 150);
-
-        return () => clearInterval(interval);
     }, [listingId]);
 
     return (
         <div className="flex items-center gap-2 text-sm border rounded-lg p-2 bg-muted">
             <KeyRound className="h-4 w-4 text-muted-foreground" />
-            <span className="font-mono text-base font-semibold tracking-wider">{displayOtp}</span>
+            <span className="text-base">
+                <JackpotTypewriter text={otp} />
+            </span>
         </div>
     );
 }
@@ -340,7 +320,6 @@ export default function MyListingsPage() {
                 </TableBody>
               </Table>
             </CardContent>
-          </Card>
            <Card>
              <CardHeader>
                 <CardTitle>Completed Listings</CardTitle>
