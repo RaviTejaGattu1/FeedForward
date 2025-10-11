@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -67,7 +68,7 @@ export function Typewriter({
       clearTimeout(startTimeout);
       setIsMounted(false);
     };
-  }, [displayedText, index, isDeleting, text, speed, loop, delay, isMounted]);
+  }, [displayedText, index, isDeleting, text, speed, loop, delay]);
 
   return (
     <Component
