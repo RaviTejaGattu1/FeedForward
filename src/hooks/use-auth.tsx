@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email: email,
         };
         const updatedUsers = { ...mockUsers, [email]: newUser };
-        setMockUsers(updatedUsers); // THIS LINE WAS MISSING
+        setMockUsers(updatedUsers);
 
         localStorage.setItem('mockUserSessionEmail', email);
         setUser(newUser);

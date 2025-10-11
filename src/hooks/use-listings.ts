@@ -32,7 +32,6 @@ export type Listing = {
 
 // --- Store Implementation ---
 
-// This is an in-browser store that uses localStorage and communicates changes between tabs.
 let listingsStore: Listing[] = [];
 
 // A set of listeners to call when the store changes.
@@ -103,6 +102,7 @@ const getInitialListings = (): Listing[] => {
 };
 
 // Initialize the store from localStorage.
+// This ensures that the store is hydrated with the latest data from localStorage upon script load.
 if (typeof window !== 'undefined') {
     listingsStore = getInitialListings();
 }
@@ -113,8 +113,6 @@ const emitChange = () => {
   listeners.forEach(listener => listener());
 }
 
-// Update the store and localStorage.
-// CRITICAL: This is where we create a new array to ensure immutability.
 const setListings = (newStoreState: Listing[]) => {
   listingsStore = newStoreState;
   if (typeof window !== 'undefined') {
@@ -134,7 +132,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key === 'mockListings' && event.newValue) {
       try {
-        // Create a new array from the storage event to trigger updates.
         listingsStore = JSON.parse(event.newValue);
         emitChange();
       } catch (e) {
@@ -156,12 +153,10 @@ export const listingsApi = {
     setListings(listingsStore.filter(l => l.id !== listingId));
   },
   getListingById: (listingId: string): Listing | undefined => {
-    // Return a copy to prevent mutation of the store object.
     const listing = listingsStore.find(l => l.id === listingId);
     return listing ? { ...listing } : undefined;
   },
-  getAllListings: (): Listing[] => {
-    // This MUST return the same instance of the array unless it has changed.
+  getSnapshot: (): Listing[] => {
     return listingsStore;
   }
 };
@@ -178,12 +173,10 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const { forCurrentUser = false } = options;
   const { user } = useAuth();
 
-  // useSyncExternalStore makes React aware of our external store.
-  const allListings = useSyncExternalStore(subscribe, listingsApi.getAllListings, getServerSnapshot);
+  const allListings = useSyncExternalStore(subscribe, listingsApi.getSnapshot, getServerSnapshot);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // The store is now initialized outside the hook, but we can keep this for consumers.
     setIsInitialized(true);
   }, []);
   
@@ -202,11 +195,9 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
       >
     ) => {
       if (!user) {
-        // This case is handled in the UI, but it's good practice to have it here.
         return;
       }
 
-      // If coordinates are missing, try to geocode the address before saving.
       let coords = {
           latitude: newListingData.latitude,
           longitude: newListingData.longitude
