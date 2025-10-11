@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Typewriter } from './ui/typewriter';
 
 type StatCardProps = {
   icon: ReactNode;
@@ -18,7 +17,7 @@ export function StatCard({ icon, title, value, description }: StatCardProps) {
       </CardHeader>
       <CardContent>
         <div className="text-4xl font-bold">
-            <Typewriter text={value} />
+            {value}
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
