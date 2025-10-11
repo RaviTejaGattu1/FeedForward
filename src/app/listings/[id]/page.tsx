@@ -36,6 +36,7 @@ import {
   Clock,
   Navigation,
   ChevronLeft,
+  LogIn,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -50,6 +51,7 @@ import {
 } from '@react-google-maps/api';
 import { getCoordsFromAddress } from '@/lib/geocoding';
 import { JackpotTypewriter } from '@/components/ui/typewriter';
+import { useAuth } from '@/hooks/use-auth';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
 type PickupOption = 'otp' | 'leave' | null;
@@ -96,6 +98,7 @@ export default function ListingDetailPage({
   const { toast } = useToast();
   const router = useRouter();
   const { getListingById, updateListing, isInitialized } = useListings();
+  const { user, loading: authLoading } = useAuth();
   
   const listing = getListingById(params.id);
 
@@ -225,8 +228,8 @@ export default function ListingDetailPage({
 
 
   const handleReserve = () => {
-    if (!listing) return;
-    updateListing(listing.id, { status: 'awaiting approval', claimedBy: 'A Requester' });
+    if (!listing || !user) return;
+    updateListing(listing.id, { status: 'awaiting approval', claimedBy: user.uid });
     setReservationStatus('awaiting');
     toast({
       title: 'Reservation Pending',
@@ -244,7 +247,7 @@ export default function ListingDetailPage({
     });
   }
 
-  if (!isInitialized) {
+  if (!isInitialized || authLoading) {
     return <ListingDetailSkeleton />;
   }
 
@@ -272,6 +275,9 @@ export default function ListingDetailPage({
        </div>
     );
   }
+
+  const isMyListing = user && user.uid === listing.userId;
+  const canReserve = user && !isMyListing && reservationStatus === 'unreserved';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -332,7 +338,20 @@ export default function ListingDetailPage({
                 </CardContent>
               </Card>
 
-              {reservationStatus === 'unreserved' && (
+              {!user && reservationStatus === 'unreserved' && (
+                <Card>
+                    <CardContent className='pt-6'>
+                        <Button className='w-full' asChild>
+                            <Link href="/login">
+                                <LogIn className='mr-2' />
+                                Log in to reserve
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+              )}
+
+              {canReserve && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button size="lg" className="w-full">

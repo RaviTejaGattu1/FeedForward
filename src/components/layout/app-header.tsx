@@ -11,20 +11,32 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { UserCircle, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { UserCircle, LogOut, LayoutDashboard, User, PackageCheck } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useListings } from '@/hooks/use-listings';
 
 export function AppHeader() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
+  const { listings, isInitialized } = useListings();
 
   const handleSignOut = async () => {
-    await signOut();
+    // In a real app with a backend, you'd call a sign-out endpoint.
+    // For this mock app, we just clear the session.
+    sessionStorage.removeItem('mockUserSessionEmail');
     router.push('/');
+    router.refresh(); // Force a refresh to update the user state everywhere
   };
+
+  const activePickup =
+    user && isInitialized
+      ? listings.find(
+          (l) => l.claimedBy === user.uid && l.status === 'approved'
+        )
+      : null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,6 +49,14 @@ export function AppHeader() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
+            {user && activePickup && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/listings/${activePickup.id}`}>
+                  <PackageCheck className="mr-2 h-4 w-4 text-primary animate-pulse" />
+                  My Pickups
+                </Link>
+              </Button>
+            )}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -50,7 +70,8 @@ export function AppHeader() {
                         alt={user.displayName ?? 'User'}
                       />
                       <AvatarFallback>
-                        {user.displayName?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}
+                        {user.displayName?.charAt(0).toUpperCase() ||
+                          user.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -71,7 +92,7 @@ export function AppHeader() {
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     <span>Dashboard</span>
                   </DropdownMenuItem>
-                   <DropdownMenuItem onClick={() => router.push('/profile')}>
+                  <DropdownMenuItem onClick={() => router.push('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
