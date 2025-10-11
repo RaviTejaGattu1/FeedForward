@@ -30,79 +30,10 @@ export type Listing = {
   userId: string;
 };
 
+
 // --- Store Implementation ---
 // This is the single source of truth for our listings data.
 
-let listingsStore: Listing[] = [];
-if (typeof window !== 'undefined') {
-    try {
-        const storedListings = localStorage.getItem('mockListings');
-        listingsStore = storedListings ? JSON.parse(storedListings) : [];
-    } catch {
-        listingsStore = [];
-    }
-}
-
-// A set of listeners to call when the store changes.
-const listeners = new Set<() => void>();
-
-// Function for components to subscribe to changes.
-const subscribe = (listener: () => void): (() => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-// Function to update the store and notify all listeners.
-const setListings = (newListings: Listing[]) => {
-  listingsStore = newListings;
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('mockListings', JSON.stringify(listingsStore));
-  }
-  // Notify all subscribed components that the data has changed.
-  listeners.forEach(listener => listener());
-}
-
-
-// --- Store API ---
-// These are the functions that components will use to interact with the store.
-const listingsApi = {
-  addListing: (newListing: Listing) => {
-    setListings([...listingsStore, newListing]);
-  },
-  updateListing: (listingId: string, updates: Partial<Listing>) => {
-    setListings(listingsStore.map(l => l.id === listingId ? { ...l, ...updates } : l));
-  },
-  removeListing: (listingId: string) => {
-    setListings(listingsStore.filter(l => l.id !== listingId));
-  },
-  getListingById: (listingId: string): Listing | undefined => {
-    // Return a copy to prevent mutation
-    const listing = listingsStore.find(l => l.id === listingId);
-    return listing ? { ...listing } : undefined;
-  },
-  getSnapshot: (): Listing[] => {
-    return listingsStore;
-  }
-};
-
-
-// This handles changes from other tabs.
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (event) => {
-    if (event.key === 'mockListings' && event.newValue) {
-      try {
-        const newListings = JSON.parse(event.newValue);
-        listingsStore = newListings;
-        listeners.forEach(listener => listener());
-      } catch (e) {
-        console.error("Failed to parse listings from storage event", e);
-      }
-    }
-  });
-}
-
-
-// --- React Hook ---
 const initialServerListings: Listing[] = [
     {
         id: 'mock-1',
@@ -148,26 +79,105 @@ const initialServerListings: Listing[] = [
     },
 ];
 
-// Initialize localStorage with default data if it's empty
-if (typeof window !== 'undefined' && !localStorage.getItem('mockListings')) {
+let listingsStore: Listing[] = [...initialServerListings];
+
+// A set of listeners to call when the store changes.
+const listeners = new Set<() => void>();
+
+function getListingsFromLocalStorage() {
+    if (typeof window === 'undefined') {
+        return [...initialServerListings];
+    }
+    try {
+        const storedListings = localStorage.getItem('mockListings');
+        if (storedListings) {
+            return JSON.parse(storedListings);
+        }
+    } catch (e) {
+        console.error("Failed to parse listings from localStorage", e);
+    }
+    // If nothing in localStorage, initialize it.
     localStorage.setItem('mockListings', JSON.stringify(initialServerListings));
-    listingsStore = initialServerListings;
+    return [...initialServerListings];
 }
 
-function getServerSnapshot() {
-    return initialServerListings;
+// Initialize the store from localStorage
+listingsStore = getListingsFromLocalStorage();
+
+
+// Function to update the store and notify all listeners.
+const setListings = (newListings: Listing[]) => {
+  listingsStore = newListings;
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('mockListings', JSON.stringify(listingsStore));
+  }
+  // Notify all subscribed components that the data has changed.
+  listeners.forEach(listener => listener());
+}
+
+// Function for components to subscribe to changes.
+const subscribe = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+// This handles changes from other tabs.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'mockListings' && event.newValue) {
+      try {
+        const newListings = JSON.parse(event.newValue);
+        // Only update if the data is actually different to avoid loops
+        if (JSON.stringify(listingsStore) !== JSON.stringify(newListings)) {
+           listingsStore = newListings;
+           listeners.forEach(listener => listener());
+        }
+      } catch (e) {
+        console.error("Failed to parse listings from storage event", e);
+      }
+    }
+  });
 }
 
 
+// --- Store API ---
+const listingsApi = {
+  addListing: (newListing: Listing) => {
+    setListings([...listingsStore, newListing]);
+  },
+  updateListing: (listingId: string, updates: Partial<Listing>) => {
+    setListings(listingsStore.map(l => l.id === listingId ? { ...l, ...updates } : l));
+  },
+  removeListing: (listingId: string) => {
+    setListings(listingsStore.filter(l => l.id !== listingId));
+  },
+  getListingById: (listingId: string): Listing | undefined => {
+    const listing = listingsStore.find(l => l.id === listingId);
+    return listing ? { ...listing } : undefined;
+  },
+  getAllListings: (): Listing[] => {
+    return listingsStore;
+  }
+};
+
+
+// --- React Hook ---
 export function useListings(options: { forCurrentUser?: boolean } = {}) {
   const { forCurrentUser = false } = options;
   const { user } = useAuth();
   
   // useSyncExternalStore makes React aware of our external store.
-  const allListings = useSyncExternalStore(subscribe, listingsApi.getSnapshot, getServerSnapshot);
+  // It takes three arguments:
+  // 1. subscribe: A function to register a callback that is called when the store changes.
+  // 2. getSnapshot: A function that returns the current store value.
+  // 3. getServerSnapshot: An optional function for server rendering.
+  const allListings = useSyncExternalStore(subscribe, listingsApi.getAllListings, () => initialServerListings);
+
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // When the component mounts on the client, we confirm initialization.
+    // The store is already initialized from localStorage outside the hook.
     setIsInitialized(true);
   }, []);
   
