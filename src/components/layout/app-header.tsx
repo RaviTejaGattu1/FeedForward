@@ -31,12 +31,12 @@ export function AppHeader() {
     router.refresh(); // Force a refresh to update the user state everywhere
   };
 
-  const activePickup =
+  const activePickups =
     user && isInitialized
-      ? listings.find(
+      ? listings.filter(
           (l) => l.claimedBy === user.uid && l.status === 'approved'
         )
-      : null;
+      : [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -49,13 +49,35 @@ export function AppHeader() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
-            {user && activePickup && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/listings/${activePickup.id}`}>
-                  <PackageCheck className="mr-2 h-4 w-4 text-primary animate-pulse" />
-                  My Pickups
-                </Link>
-              </Button>
+            {user && activePickups.length > 0 && (
+              <>
+                {activePickups.length === 1 ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/listings/${activePickups[0].id}`}>
+                      <PackageCheck className="mr-2 h-4 w-4 text-primary animate-pulse" />
+                      My Pickup
+                    </Link>
+                  </Button>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <PackageCheck className="mr-2 h-4 w-4 text-primary animate-pulse" />
+                        My Pickups ({activePickups.length})
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end">
+                       <DropdownMenuLabel>Active Pickups</DropdownMenuLabel>
+                       <DropdownMenuSeparator />
+                        {activePickups.map((pickup) => (
+                           <DropdownMenuItem key={pickup.id} onClick={() => router.push(`/listings/${pickup.id}`)}>
+                              {pickup.foodName}
+                           </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </>
             )}
             {user ? (
               <DropdownMenu>
