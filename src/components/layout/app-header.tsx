@@ -11,17 +11,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { UserCircle, LogOut, LayoutDashboard, User, PackageCheck } from 'lucide-react';
+import { UserCircle, LogOut, LayoutDashboard, User } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useListings } from '@/hooks/use-listings';
 
 export function AppHeader() {
   const { user } = useAuth();
   const router = useRouter();
-  const { listings, isInitialized } = useListings();
 
   const handleSignOut = async () => {
     // In a real app with a backend, you'd call a sign-out endpoint.
@@ -30,13 +28,6 @@ export function AppHeader() {
     router.push('/');
     router.refresh(); // Force a refresh to update the user state everywhere
   };
-
-  const activePickups =
-    user && isInitialized
-      ? listings.filter(
-          (l) => l.claimedBy === user.uid && l.status === 'approved'
-        )
-      : [];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -49,36 +40,6 @@ export function AppHeader() {
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
-            {user && activePickups.length > 0 && (
-              <>
-                {activePickups.length === 1 ? (
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/listings/${activePickups[0].id}`}>
-                      <PackageCheck className="mr-2 h-4 w-4 text-primary animate-pulse" />
-                      My Pickup
-                    </Link>
-                  </Button>
-                ) : (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <PackageCheck className="mr-2 h-4 w-4 text-primary animate-pulse" />
-                        My Pickups ({activePickups.length})
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end">
-                       <DropdownMenuLabel>Active Pickups</DropdownMenuLabel>
-                       <DropdownMenuSeparator />
-                        {activePickups.map((pickup) => (
-                           <DropdownMenuItem key={pickup.id} onClick={() => router.push(`/listings/${pickup.id}`)}>
-                              {pickup.foodName}
-                           </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </>
-            )}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

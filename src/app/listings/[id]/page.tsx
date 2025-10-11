@@ -94,13 +94,12 @@ export default function ListingDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
   const { toast } = useToast();
   const router = useRouter();
   const { getListingById, updateListing, isInitialized, getOtpForListing } = useListings();
   const { user, loading: authLoading } = useAuth();
   
-  const listing = getListingById(id);
+  const listing = getListingById(params.id);
 
   const [directions, setDirections] =
     useState<google.maps.DirectionsResult | null>(null);
