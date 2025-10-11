@@ -90,10 +90,11 @@ function ListingDetailSkeleton() {
 }
 
 export default function ListingDetailPage({
-  params: { id },
+  params,
 }: {
   params: { id: string };
 }) {
+  const { id } = params;
   const { toast } = useToast();
   const router = useRouter();
   const { getListingById, updateListing, isInitialized, getOtpForListing } = useListings();
@@ -498,5 +499,3 @@ export default function ListingDetailPage({
     </div>
   );
 }
-
-    
