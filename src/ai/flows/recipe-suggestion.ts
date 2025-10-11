@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const RecipeSuggestionInputSchema = z.object({
   foodItem: z.string().describe('The food item to base the recipe on.'),
@@ -30,7 +30,7 @@ export async function generateRecipeSuggestion(
   return recipeSuggestionFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const generationPrompt = ai.definePrompt({
   name: 'recipeSuggestionPrompt',
   input: { schema: RecipeSuggestionInputSchema },
   output: { schema: RecipeSuggestionOutputSchema },
@@ -43,7 +43,6 @@ The tone should be encouraging and helpful.
 Phrase the suggestion like this: "Hey, the simplest dish a recipient can make using this item is [Dish Name]. It also requires [Ingredient A, B, C] to make it. You can donate them too if you have them, to deliver a complete meal!"
 Keep the suggestion concise (around 50 words).
 If the item is not something that can be used in a recipe (e.g., a ready-to-eat meal), just return an encouraging message about their donation.
-**CRITICAL: You MUST use perfect English spelling and grammar. Do not use slang or misspellings (e.g., use "Hi" or "Hey", not "Hy"). Your response will be rejected if it contains errors.**
 
 Return your response in JSON format.
 `,
@@ -61,6 +60,20 @@ Return your response in JSON format.
   }
 });
 
+const proofreadPrompt = ai.definePrompt({
+    name: 'recipeProofreadPrompt',
+    input: { schema: z.object({ textToProofread: z.string() }) },
+    output: { schema: RecipeSuggestionOutputSchema },
+    prompt: `You are a proofreader. Your only job is to correct spelling and grammar mistakes in the following text.
+    
+    **CRITICAL RULE:** Pay special attention to greetings. If you see "Hy," you MUST correct it to "Hey" or "Hi." Do not leave any spelling or grammar errors.
+    
+    Return the corrected text in a JSON object with a single key: "suggestion".
+    
+    Text to proofread: "{{{textToProofread}}}"`,
+});
+
+
 const recipeSuggestionFlow = ai.defineFlow(
   {
     name: 'recipeSuggestionFlow',
@@ -68,10 +81,22 @@ const recipeSuggestionFlow = ai.defineFlow(
     outputSchema: RecipeSuggestionOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    if (!output) {
-      throw new Error('The model did not return a suggestion. This might be due to safety settings or an internal error.');
+    // Step 1: Generate the initial suggestion
+    const generationResult = await generationPrompt(input);
+    const initialSuggestion = generationResult.output?.suggestion;
+
+    if (!initialSuggestion) {
+      throw new Error('The model did not return an initial suggestion. This might be due to safety settings or an internal error.');
     }
-    return output;
+
+    // Step 2: Proofread the suggestion
+    const proofreadResult = await proofreadPrompt({ textToProofread: initialSuggestion });
+    const finalSuggestion = proofreadResult.output;
+    
+    if (!finalSuggestion) {
+        throw new Error('The proofreading step failed to return a valid suggestion.');
+    }
+    
+    return finalSuggestion;
   }
 );
