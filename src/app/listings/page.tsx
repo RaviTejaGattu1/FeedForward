@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AppHeader } from '@/components/layout/app-header';
 import { AppFooter } from '@/components/layout/app-footer';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ import {
   MessageSquare,
   LogIn,
   KeyRound,
+  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -87,6 +88,7 @@ export default function MyListingsPage() {
   const { listings, updateListing, removeListing, isInitialized } = useListings({ forCurrentUser: true });
   const { toast } = useToast();
   const router = useRouter();
+  const [instructions, setInstructions] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -96,13 +98,21 @@ export default function MyListingsPage() {
 
 
   const handleApprove = (listingId: string, pickupOption: 'otp' | 'leave') => {
-    updateListing(listingId, { status: 'approved' });
+    let updates: Partial<Listing> = {
+        status: 'approved',
+        pickupMethod: pickupOption,
+    };
+    if (pickupOption === 'leave') {
+        updates.pickupInstructions = instructions;
+    }
+
+    updateListing(listingId, updates);
+
     toast({
       title: 'Request Approved!',
-      description: `The requester has been notified with the ${
-        pickupOption === 'otp' ? 'OTP' : 'instructions'
-      }.`,
+      description: `The requester has been notified.`,
     });
+    setInstructions(''); // Reset instructions after submitting
   };
 
   const handleDeny = (listingId: string) => {
@@ -115,8 +125,6 @@ export default function MyListingsPage() {
   };
 
   const handleDelivered = (listingId: string) => {
-    // In a real app, this might just update status to 'delivered'
-    // but for mock purposes we remove it.
     updateListing(listingId, { status: 'delivered' });
     toast({
         title: 'Delivery Confirmed',
@@ -170,7 +178,10 @@ export default function MyListingsPage() {
             </Badge>
         </TableCell>
         <TableCell>
-            {listing.claimedBy || 'N/A'}
+            {listing.claimedBy ? (
+              <span className="text-sm">{listing.claimedBy}</span>
+            ) : 'N/A'
+            }
         </TableCell>
         <TableCell className="text-right">
             {listing.status === 'awaiting approval' ? (
@@ -188,20 +199,20 @@ export default function MyListingsPage() {
                                 Select how you want to hand over the food item.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 py-4">
                             <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => handleApprove(listing.id, 'otp')}>
-                                <Check className="h-6 w-6" />
+                                <KeyRound className="h-6 w-6" />
                                 <span>Connect via OTP</span>
                             </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                        <Button variant="outline" className="h-24 flex-col gap-2">
+                                    <Button variant="outline" className="h-24 flex-col gap-2">
                                         <MessageSquare className="h-6 w-6" />
                                         <span>Just Leave It</span>
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
-                                        <AlertDialogHeader>
+                                    <AlertDialogHeader>
                                         <AlertDialogTitle>Instructions for "Just Leave It"</AlertDialogTitle>
                                         <AlertDialogDescription>
                                             Please provide clear instructions for the recipient to find the item.
@@ -209,14 +220,19 @@ export default function MyListingsPage() {
                                     </AlertDialogHeader>
                                     <div className="grid gap-2">
                                         <Label htmlFor="instructions">Instructions</Label>
-                                        <Textarea id="instructions" placeholder="e.g., 'Item will be in a blue bag next to the front door.'" />
+                                        <Textarea 
+                                            id="instructions" 
+                                            placeholder="e.g., 'Item will be in a blue bag next to the front door.'" 
+                                            value={instructions}
+                                            onChange={(e) => setInstructions(e.target.value)}
+                                        />
                                     </div>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                                         <AlertDialogAction onClick={() => handleApprove(listing.id, 'leave')}>Confirm</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
-                                </AlertDialog>
+                            </AlertDialog>
                         </div>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -229,7 +245,13 @@ export default function MyListingsPage() {
             </div>
             ) : listing.status === 'approved' ? (
                 <div className="flex items-center justify-end gap-4">
-                    <OtpDisplay listingId={listing.id} />
+                    {listing.pickupMethod === 'otp' && <OtpDisplay listingId={listing.id} />}
+                    {listing.pickupMethod === 'leave' && 
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground p-2">
+                            <Info className="h-4 w-4" />
+                            <span>Instructions sent</span>
+                        </div>
+                    }
                     <Button variant="outline" size="sm" onClick={() => handleDelivered(listing.id)}>
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Delivered
                     </Button>
@@ -367,5 +389,3 @@ export default function MyListingsPage() {
     </div>
   );
 }
-
-    

@@ -28,6 +28,8 @@ export type Listing = {
   claimedBy: string | null;
   createdAt: string; // Store as ISO string for localStorage
   userId: string;
+  pickupMethod?: 'otp' | 'leave' | null;
+  pickupInstructions?: string | null;
 };
 
 
@@ -56,7 +58,7 @@ const initialServerListings: Listing[] = [
         latitude: 40.7228,
         longitude: -74.0160,
         status: 'awaiting approval',
-        claimedBy: 'Community Shelter',
+        claimedBy: 'user-1721757827453',
         createdAt: new Date(Date.now() - 3600 * 2000).toISOString(),
         userId: 'admin-user-id',
         imageUrl: 'https://images.unsplash.com/photo-1651774031696-1531123f9831?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhcHBsZXMlMjBiYXNrZXR8ZW58MHx8fHwxNzU4OTUwNzkxfDA&ixlib=rb-4.1.0&q=80&w=1080',
@@ -128,6 +130,8 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
           status: 'active',
           claimedBy: null,
           createdAt: new Date().toISOString(),
+          pickupMethod: null,
+          pickupInstructions: null,
       }
       listingsStore.setState([...listingsStore.getSnapshot(), newListing]);
     },
@@ -157,6 +161,7 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
   }, []);
   
   const getOtpForListing = useCallback((listingId: string) => {
+    if (!listingId) return '000000';
     const numericId = parseInt(listingId.replace(/[^0-9]/g, ''), 10);
     const otp = String(numericId % 1000000).padStart(6, '0');
     return otp;
@@ -172,5 +177,3 @@ export function useListings(options: { forCurrentUser?: boolean } = {}) {
     getOtpForListing,
   };
 }
-
-    

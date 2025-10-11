@@ -37,6 +37,7 @@ import {
   Navigation,
   ChevronLeft,
   LogIn,
+  KeyRound,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -54,7 +55,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { LocationInput } from '@/components/location-input';
 
 type ReservationStatus = 'unreserved' | 'awaiting' | 'approved' | 'completed';
-type PickupOption = 'otp' | 'leave' | null;
 
 const MAP_LIBRARIES = ['places'] as (
   | 'places'
@@ -91,10 +91,11 @@ function ListingDetailSkeleton() {
 }
 
 export default function ListingDetailPage({
-  params: { id },
+  params,
 }: {
   params: { id: string };
 }) {
+  const { id } = params;
   const { toast } = useToast();
   const router = useRouter();
   const { getListingById, updateListing, isInitialized, getOtpForListing } = useListings();
@@ -103,9 +104,7 @@ export default function ListingDetailPage({
   const listing = getListingById(id);
 
   const [reservationStatus, setReservationStatus] = useState<ReservationStatus>('unreserved');
-  const [pickupOption, setPickupOption] = useState<PickupOption>(null); 
-  const [providerInstructions, setProviderInstructions] = useState('');
-
+  
   const [directions, setDirections] =
     useState<google.maps.DirectionsResult | null>(null);
   
@@ -117,8 +116,8 @@ export default function ListingDetailPage({
     if (listing?.latitude && listing?.longitude) {
       return { lat: listing.latitude, lng: listing.longitude };
     }
-    return listing?.address;
-  }, [listing?.latitude, listing?.longitude, listing?.address]);
+    return null;
+  }, [listing?.latitude, listing?.longitude]);
 
 
   const otp = listing ? getOtpForListing(listing.id) : '';
@@ -141,7 +140,6 @@ export default function ListingDetailPage({
             setReservationStatus('awaiting');
         } else if (listing.status === 'approved') {
             setReservationStatus('approved');
-            setPickupOption('otp'); 
         } else if (listing.status === 'delivered') {
             setReservationStatus('completed');
         }
@@ -388,17 +386,17 @@ export default function ListingDetailPage({
               </Alert>
           )}
 
-          {reservationStatus === 'approved' && pickupOption && (
+          {reservationStatus === 'approved' && listing.pickupMethod && (
             <div className="mt-12">
                <h2 className="text-2xl font-semibold tracking-tight mb-6">
                 Pickup and Navigation
               </h2>
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                   {pickupOption === 'otp' && (
+                   {listing.pickupMethod === 'otp' && (
                       <Card>
                         <CardHeader className="flex-row items-center gap-4">
-                            <Check className="h-8 w-8 text-primary" />
+                            <KeyRound className="h-8 w-8 text-primary" />
                             <CardTitle>Connect via OTP</CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -414,11 +412,11 @@ export default function ListingDetailPage({
                         </CardContent>
                       </Card>
                    )}
-                   {pickupOption === 'leave' && (
+                   {listing.pickupMethod === 'leave' && (
                        <Card>
                         <CardHeader className="flex-row items-center gap-4">
                             <MessageSquare className="h-8 w-8 text-primary" />
-                            <CardTitle>Just Leave It Instructions</CardTitle>
+                            <CardTitle>Pickup Instructions</CardTitle>
                         </CardHeader>
                         <CardContent>
                            <p className="text-sm text-muted-foreground mb-4">
@@ -426,7 +424,7 @@ export default function ListingDetailPage({
                             </p>
                             <div className="bg-muted p-4 rounded-md">
                                 <p className="text-sm font-semibold">Provider's Note:</p>
-                                <p className="text-sm">"Item will be in a blue bag next to the front door."</p>
+                                <p className="text-sm">{listing.pickupInstructions || "No instructions provided."}</p>
                             </div>
                         </CardContent>
                       </Card>
@@ -462,11 +460,11 @@ export default function ListingDetailPage({
                             )}
                         </div>
                         <div className="h-64 bg-muted rounded-md flex items-center justify-center">
-                           {isMapLoaded ? (
+                           {isMapLoaded && destination ? (
                               <GoogleMap
                                 mapContainerClassName="w-full h-full"
-                                center={userLocationCoords || { lat: 0, lng: 0 }}
-                                zoom={userLocationCoords ? 12 : 1}
+                                center={userLocationCoords || destination}
+                                zoom={userLocationCoords ? 12 : 10}
                               >
                                 {directions && (
                                     <DirectionsRenderer options={{ directions }} />
