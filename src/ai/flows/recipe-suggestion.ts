@@ -43,6 +43,8 @@ The tone should be encouraging and helpful.
 Phrase the suggestion like this: "Hey, the simplest dish a recipient can make using this item is [Dish Name]. It also requires [Ingredient A, B, C] to make it. You can donate them too if you have them, to deliver a complete meal!"
 Keep the suggestion concise (around 50 words).
 If the item is not something that can be used in a recipe (e.g., a ready-to-eat meal), just return an encouraging message about their donation.
+
+Return your response in JSON format.
 `,
   config: {
     safetySettings: [

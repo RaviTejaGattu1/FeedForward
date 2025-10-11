@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 type TypewriterProps = {
@@ -24,13 +24,14 @@ export function Typewriter({
   const [displayedText, setDisplayedText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [index, setIndex] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    if (hasRun.current) return;
+    
     const startTimeout = setTimeout(() => {
+      hasRun.current = true;
       const handleTyping = () => {
-        if (!isMounted) return;
 
         if (loop) {
           if (isDeleting) {
@@ -66,7 +67,6 @@ export function Typewriter({
 
     return () => {
       clearTimeout(startTimeout);
-      setIsMounted(false);
     };
   }, [displayedText, index, isDeleting, text, speed, loop, delay]);
 
